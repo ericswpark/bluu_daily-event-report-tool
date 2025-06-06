@@ -241,6 +241,23 @@ function sortBySeniority(reportItems) {
   });
 };
 
+function sortByProject(reportItems) {
+  // Create a project -> index map for fast lookup
+  const projectOrderMap = projectPreselect.reduce((acc, project, index) => {
+    acc[project] = index;
+    return acc;
+  }, {});
+
+  return reportItems.map(item => ({
+    ...item,
+    projects: [...item.projects].sort((a, b) => {
+      const indexA = projectOrderMap[a.name] ?? Infinity;
+      const indexB = projectOrderMap[b.name] ?? Infinity;
+      return indexA - indexB;
+    })
+  }));
+};
+
 function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription }) {
   const handleAdd = () => {
     if (!name || !project || !description) return;
@@ -329,7 +346,7 @@ function removeItem(data, nameIndex, projectIndex, itemIndex) {
 
       function Table({reportItems, setReportItems, setName, setProject, setDescription}) {
         // Always sort by name first
-        const sortedItems = sortBySeniority(reportItems);
+        const sortedItems = sortBySeniority(sortByProject(reportItems));
 
         const deleteItem = (person_idx, project_idx, job_idx) => {
 if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
