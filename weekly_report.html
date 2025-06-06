@@ -41,6 +41,9 @@
     <script type="text/babel">
       const { useState } = React;
 
+      const names = ["박선우"];
+      const projectPreselect = ["Demo Project", "Other"];
+
       function App() {
         const [reportItems, setReportItems] = useState([
   //{
@@ -64,8 +67,8 @@
   //}
 ]);
 
-  const [name, setName] = useState('');
-  const [project, setProject] = useState('');
+  const [name, setName] = useState(names[0]);
+  const [project, setProject] = useState(projectPreselect[0]);
   const [description, setDescription] = useState('');
 
         return (
@@ -195,9 +198,9 @@ function addNewItem(reportItems, setReportItems, name, project, description) {
     });
 }
 
-function sortBySeniority(reportItems, nameOrder) {
+function sortBySeniority(reportItems) {
   // Create a name -> index map for fast lookup
-  const orderMap = nameOrder.reduce((acc, name, index) => {
+  const orderMap = names.reduce((acc, name, index) => {
     acc[name] = index;
     return acc;
   }, {});
@@ -228,13 +231,30 @@ function ReportForm({ reportItems, setReportItems, name, setName, project, setPr
     handleAdd();
   }
 
+  const projectInPreselect = projectPreselect.includes(project);
+
   return (
     <div style={{ marginBottom: '20px' }}>
-      <input
-        placeholder="이름"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
+
+    <select value={name} onChange={e => setName(e.target.value)} placeholder="이름">
+      {names.map((name, index) => (
+        <option key={index} value={name}>
+          {name}
+        </option>
+      ))}
+    </select>
+
+    <select value={project} onChange={e => setProject(e.target.value)} placeholder="프로젝트">
+      {projectPreselect.map((projectPre, index) => (
+        <option key={index} value={projectPre}>
+          {projectPre}
+        </option>
+      ))}
+	{!projectInPreselect && project !== '' && (
+          <option value={project}>직접입력</option>
+        )}
+    </select>
+
       <input
         placeholder="프로젝트"
         value={project}
@@ -250,8 +270,6 @@ function ReportForm({ reportItems, setReportItems, name, setName, project, setPr
     </div>
   );
 }
-
-const seniorityList = ["박선우"];
 
 function removeItem(data, nameIndex, projectIndex, itemIndex) {
   return data
@@ -278,7 +296,7 @@ function removeItem(data, nameIndex, projectIndex, itemIndex) {
 
       function Table({reportItems, setReportItems, setName, setProject, setDescription}) {
         // Always sort by name first
-        const sortedItems = sortBySeniority(reportItems, seniorityList);
+        const sortedItems = sortBySeniority(reportItems);
 
         const deleteItem = (person_idx, project_idx, job_idx) => {
 if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
@@ -300,9 +318,9 @@ return (
   <table border="1">
     <thead>
       <tr>
-        <th>이름</th>
-        <th>프로젝트</th>
-        <th>금일 업무 내용</th>
+        <th style={{ textAlign: 'center' }}>이름</th>
+        <th style={{ textAlign: 'center' }}>프로젝트</th>
+        <th style={{ textAlign: 'center' }}>금일 업무 내용</th>
       </tr>
     </thead>
     <tbody>
