@@ -28,6 +28,14 @@
     margin: 0;
     padding-left: 16px;
   }
+
+  .jobitem {
+    cursor: pointer;
+  }
+
+  .jobitem:hover {
+    color: darkgray;
+  }
 </style>
 
 
@@ -77,14 +85,12 @@
 
             <Table reportItems={reportItems} setReportItems={setReportItems} setName={setName} setProject={setProject} setDescription={setDescription} />
             <span>(팁: 아이템을 누르면 삭제하실 수 있고, 삭제된 아이템은 바로 편집할 수 있도록 필드에 다시 입력됩니다.)</span>
-
-            <h2>1. 리포트 아이템 추가</h2>
                    <ReportForm reportItems={reportItems} setReportItems={setReportItems} name={name} setName={setName} project={project} setProject={setProject} description={description} setDescription={setDescription} />
 
-            <h2>2. JSON Webex로 보내기</h2>
+            <h2>JSON Webex로 보내기</h2>
             <RawJSONView  reportItems={reportItems} setReportItems={setReportItems} />
 
-                   <h2>3. 팀원 JSON 병합</h2>
+                   <h2>팀원 JSON 병합</h2>
             <TeamJSONMerge reportItems={reportItems} setReportItems={setReportItems} />
           </>
         );
@@ -368,7 +374,7 @@ return (
               <td>
                 <ul>
                   {project.items.map((item, job_idx) => (
-                    <li key={job_idx} onClick={e => { deleteItem(person_idx, project_idx, job_idx) }}>
+                    <li className="jobitem" key={job_idx} onClick={e => { deleteItem(person_idx, project_idx, job_idx) }}>
                       {item}
                     </li>
                   ))}
