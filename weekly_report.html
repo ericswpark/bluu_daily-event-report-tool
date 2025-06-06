@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<!-- QA dept. weekly report tool demo -->
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>일일리포트 작성지원도구</title>
+
+    <!-- React and ReactDOM (development versions) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel (for JSX support in the browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Make tables look more like Outlook -->
+<style>
+  table {
+    border-collapse: collapse;
+    border: 1px solid #000;
+  }
+  table th,
+  table td {
+    border: 1px solid #000;
+    padding: 4px 8px;
+    text-align: left;
+  }
+  ul {
+    margin: 0;
+    padding-left: 16px;
+  }
+</style>
+
+
+
+  </head>
+
+
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState } = React;
+
+      function App() {
+        const [reportItems, setReportItems] = useState([
+  //{
+  //  "name": "박선우",
+  //  "projects": [
+  //   {
+  //      "name": "Demo Project 1",
+  //      "items": [
+  //        "Demo Item 1",
+  //        "Demo Item 2"
+  //      ]
+  //    },
+  //    {
+  //      "name": "Demo Project 2",
+  //      "items": [
+  //       "Demo Item 3",
+  //        "Demo Item 4"
+  //      ]
+  //    }
+  //  ]
+  //}
+]);
+
+  const [name, setName] = useState('');
+  const [project, setProject] = useState('');
+  const [description, setDescription] = useState('');
+
+        return (
+          <>
+            <h1>일일리포트 작성</h1>
+
+            <Table reportItems={reportItems} setReportItems={setReportItems} setName={setName} setProject={setProject} setDescription={setDescription} />
+            <span>(팁: 아이템을 누르면 삭제하실 수 있고, 삭제된 아이템은 바로 편집할 수 있도록 필드에 다시 입력됩니다.)</span>
+
+            <h2>1. 리포트 아이템 추가</h2>
+                   <ReportForm reportItems={reportItems} setReportItems={setReportItems} name={name} setName={setName} project={project} setProject={setProject} description={description} setDescription={setDescription} />
+
+            <h2>2. JSON Webex로 보내기</h2>
+            <RawJSONView  reportItems={reportItems} setReportItems={setReportItems} />
+
+                   <h2>3. 팀원 JSON 병합</h2>
+            <TeamJSONMerge reportItems={reportItems} setReportItems={setReportItems} />
+          </>
+        );
+      }
+
+
+function TeamJSONMerge({ reportItems, setReportItems }) {
+       const [jsonText, setJsonText] = useState("");
+
+  const startImport = (e) => {
+    try {
+      const parsed = JSON.parse(jsonText);
+
+parsed.forEach(user => {
+    const { name, projects } = user;
+    projects.forEach(project => {
+      const { name: projectName, items } = project;
+      items.forEach(description => {
+        console.log("adding ", {name, projectName, description});
+        addNewItem(reportItems, setReportItems, name, projectName, description);
+      });
+    });
+  });
+
+      // Clear
+      setJsonText("");
+
+    } catch (err) {
+      alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+    }
+  };
+
+
+    return (<>
+      <textarea
+        style={{ width: '100%', height: '100px', fontFamily: 'monospace' }}
+        value={jsonText}   
+onChange={e => setJsonText(e.target.value)}
+   />
+     <button onClick={startImport}>병합</button>
+     </>
+);
+}
+
+function RawJSONView({ reportItems, setReportItems }) {
+       // Convert current state into JSON (for export)
+       const jsonText = JSON.stringify(reportItems, null, 2);
+
+       // Handle user JSON edits
+  const handleJsonChange = (e) => {
+    let text = e.target.value;
+    if (text === "") { text = "[]" }
+    try {
+      const parsed = JSON.parse(text);
+      setReportItems(parsed);
+    } catch (err) {
+      alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+    }
+  };
+
+
+    return (<>
+      <textarea
+        style={{ width: '100%', height: '200px', fontFamily: 'monospace' }}
+        value={jsonText}
+        onChange={handleJsonChange}
+      />
+     </>
+);
+}
+
+function addNewItem(reportItems, setReportItems, name, project, description) {
+    if (!name || !project || !description) return;
+
+    // Clean up whitespace
+    var name = name.trim();
+    var project = project.trim();
+    var description = description.trim();
+
+    setReportItems(prev => {
+      const updated = [...prev];
+      const personIndex = updated.findIndex(item => item.name === name);
+
+      const newProject = {
+        name: project,
+        items: [description]
+      };
+
+      if (personIndex === -1) {
+        // New person
+        updated.push({
+          name,
+          projects: [newProject]
+        });
+      } else {
+        // Existing person
+        const existingProjectIndex = updated[personIndex].projects.findIndex(
+          p => p.name === project
+        );
+
+        if (existingProjectIndex === -1) {
+          // New project
+          updated[personIndex].projects.push(newProject);
+        } else {
+          // Add to existing project
+          updated[personIndex].projects[existingProjectIndex].items.push(description);
+        }
+      }
+
+      return updated;
+    });
+}
+
+function sortBySeniority(reportItems, nameOrder) {
+  // Create a name -> index map for fast lookup
+  const orderMap = nameOrder.reduce((acc, name, index) => {
+    acc[name] = index;
+    return acc;
+  }, {});
+
+  // Return a new sorted array
+  return [...reportItems].sort((a, b) => {
+    const indexA = orderMap[a.name] ?? Infinity;
+    const indexB = orderMap[b.name] ?? Infinity;
+    return indexA - indexB;
+  });
+};
+
+function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription }) {
+  const handleAdd = () => {
+    if (!name || !project || !description) return;
+
+    addNewItem(reportItems, setReportItems, name, project, description);
+
+    // Clear fields
+    //setName('');
+    //setProject('');
+    setDescription('');
+  };
+
+  const handleEnter = (e) => {
+    if (e.key !== "Enter") return;
+
+    handleAdd();
+  }
+
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <input
+        placeholder="이름"
+        value={name}
+        onChange={e => setName(e.target.value)}
+      />
+      <input
+        placeholder="프로젝트"
+        value={project}
+        onChange={e => setProject(e.target.value)}
+      />
+      <input
+        placeholder="업무 내용"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        onKeyPress={handleEnter}
+      />
+      <button onClick={handleAdd}>추가</button>
+    </div>
+  );
+}
+
+const seniorityList = ["박선우"];
+
+function removeItem(data, nameIndex, projectIndex, itemIndex) {
+  return data
+    .map((person, pIdx) => {
+      if (pIdx !== nameIndex) return person;
+
+      const updatedProjects = person.projects
+        .map((project, projIdx) => {
+          if (projIdx !== projectIndex) return project;
+
+          const updatedItems = project.items.filter((_, iIdx) => iIdx !== itemIndex);
+          if (updatedItems.length === 0) return null;
+
+          return { ...project, items: updatedItems };
+        })
+        .filter(project => project !== null);
+
+      if (updatedProjects.length === 0) return null;
+
+      return { ...person, projects: updatedProjects };
+    })
+    .filter(person => person !== null);
+}
+
+      function Table({reportItems, setReportItems, setName, setProject, setDescription}) {
+        // Always sort by name first
+        const sortedItems = sortBySeniority(reportItems, seniorityList);
+
+        const deleteItem = (person_idx, project_idx, job_idx) => {
+if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
+    return; // cancel
+}
+
+            const targetPerson = sortedItems[person_idx];
+            const targetProject = targetPerson["projects"][project_idx];
+            const targetDescription = targetProject["items"][job_idx];
+
+            setReportItems(removeItem(sortedItems, person_idx, project_idx, job_idx));
+
+            setName(targetPerson["name"]);
+            setProject(targetProject["name"]);
+            setDescription(targetDescription);
+       
+        };
+return (
+  <table border="1">
+    <thead>
+      <tr>
+        <th>이름</th>
+        <th>프로젝트</th>
+        <th>금일 업무 내용</th>
+      </tr>
+    </thead>
+    <tbody>
+      {sortedItems.length === 0 ? (
+        <tr>
+          <td colSpan="3" style={{ textAlign: 'center' }}>
+            아이템이 없습니다. 아래에서 추가하세요!
+          </td>
+        </tr>
+      ) : (
+        sortedItems.map((person, person_idx) =>
+          person.projects.map((project, project_idx) => (
+            <tr key={person.name + project.name}>
+              {project_idx === 0 && (
+                <td rowSpan={person.projects.length}>{person.name}</td>
+              )}
+              <td>{project.name}</td>
+              <td>
+                <ul>
+                  {project.items.map((item, job_idx) => (
+                    <li key={job_idx} onClick={e => { deleteItem(person_idx, project_idx, job_idx) }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </td>
+            </tr>
+          ))
+        )
+      )}
+    </tbody>
+  </table>
+);
+      }
+
+      const rootElement = document.getElementById('root');
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(<App />);
+    </script>
+  </body>
+</html>
