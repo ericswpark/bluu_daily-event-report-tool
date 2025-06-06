@@ -47,7 +47,8 @@
     <div id="root"></div>
 
     <script type="text/babel">
-      const { useState } = React;
+      const { useState, useEffect } = React;
+      const LOCAL_STORAGE_KEY = 'weekly-report-items';
 
       const names = ["박선우"];
       const projectPreselect = ["Demo Project", "Other"];
@@ -74,6 +75,27 @@
   //  ]
   //}
 ]);
+
+   // Load on initial page load
+useEffect(() => {
+    const storedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedItems) {
+      try {
+        setReportItems(JSON.parse(storedItems));
+      } catch (e) {
+        console.error('Failed to parse stored reportItems:', e);
+      }
+    } else {
+      console.log("No stored items.");
+    }
+  }, []);
+
+   // Save on change to localstorage
+useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reportItems));
+    console.log("worked! saved ", reportItems);
+  }, [reportItems]);
+
 
   const [name, setName] = useState(names[0]);
   const [project, setProject] = useState(projectPreselect[0]);
