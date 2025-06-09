@@ -6,430 +6,489 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>일일리포트 작성지원도구</title>
 
-    <!-- React and ReactDOM (development versions) -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <!-- Babel (for JSX support in the browser) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Make tables look more like Outlook -->
-<style>
-  table {
-    border-collapse: collapse;
-    border: 1px solid #000;
-  }
-  table th,
-  table td {
-    border: 1px solid #000;
-    padding: 4px 8px;
-    text-align: left;
-  }
-  ul {
-    margin: 0;
-    padding-left: 16px;
-  }
-
-  .jobitem {
-    cursor: pointer;
-  }
-
-  .jobitem:hover {
-    color: darkgray;
-  }
-</style>
-
-
-
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-
 
   <body>
     <div id="root"></div>
 
-    <script type="text/babel">
-      const { useState, useEffect } = React;
+    <script type="text/babel" data-type="module">
+      import React from "https://esm.sh/react@19"
+      import ReactDOMClient from "https://esm.sh/react-dom@19/client"
+
+      const { useState, useEffect, useId } = React;
       const LOCAL_STORAGE_KEY = 'weekly-report-items';
 
       const names = ["박선우"];
       const projectPreselect = ["Demo Project", "Other"];
 
       function App() {
-        const [reportItems, setReportItems] = useState([
-  //{
-  //  "name": "박선우",
-  //  "projects": [
-  //   {
-  //      "name": "Demo Project 1",
-  //      "items": [
-  //        "Demo Item 1",
-  //        "Demo Item 2"
-  //      ]
-  //    },
-  //    {
-  //      "name": "Demo Project 2",
-  //      "items": [
-  //       "Demo Item 3",
-  //        "Demo Item 4"
-  //      ]
-  //    }
-  //  ]
-  //}
-]);
+        const [reportItems, setReportItems] = useState([]);
 
-   // Load on initial page load
-useEffect(() => {
-    const storedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedItems) {
-      try {
-        setReportItems(JSON.parse(storedItems));
-      } catch (e) {
-        console.error('Failed to parse stored reportItems:', e);
+        // Load saved report items on initial page load
+        useEffect(() => {
+          const storedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (storedItems) {
+            try {
+              setReportItems(JSON.parse(storedItems));
+            } catch (e) {
+              console.error('Failed to parse stored reportItems:', e);
+            }
+          } else {
+            console.log("No stored items.");
+          }
+        }, []);
+
+        // Save reported items on change
+        useEffect(() => {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reportItems));
+        }, [reportItems]);
+
+        // New report item fields (also used for editing)
+        const [name, setName] = useState(names[0]);
+        const [project, setProject] = useState(projectPreselect[0]);
+        const [description, setDescription] = useState('');
+
+        return (
+          <div className="max-w-4xl mx-auto px-8">
+            <h1 className="text-3xl my-4">일일리포트 작성</h1>
+
+            <Table
+              reportItems={reportItems}
+              setReportItems={setReportItems}
+              setName={setName}
+              setProject={setProject}
+              setDescription={setDescription} />
+            <span className="block mb-4">(팁: 아이템을 누르면 삭제하실 수 있고, 삭제된 아이템은 바로 편집할 수 있도록 필드에 다시 입력됩니다.)</span>
+
+            <ReportForm
+              className="mb-4"
+              reportItems={reportItems}
+              setReportItems={setReportItems}
+              name={name}
+              setName={setName}
+              project={project}
+              setProject={setProject}
+              description={description}
+              setDescription={setDescription}
+            />
+
+            <h2 className="text-2xl mb-4">JSON Webex로 보내기</h2>
+            <RawJSONView reportItems={reportItems} setReportItems={setReportItems} className="mb-4" />
+
+            <h2 className="text-2xl mb-4">팀원 JSON 병합</h2>
+            <TeamJSONMerge reportItems={reportItems} setReportItems={setReportItems} className="mb-4" />
+          </div>
+        );
       }
-    } else {
-      console.log("No stored items.");
-    }
-  }, []);
 
-   // Save on change to localstorage
-useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reportItems));
-    console.log("worked! saved ", reportItems);
-  }, [reportItems]);
-
-
-  const [name, setName] = useState(names[0]);
-  const [project, setProject] = useState(projectPreselect[0]);
-  const [description, setDescription] = useState('');
+      // Define default components here
+      function LabeledCheckbox({children, ...props}) {
+        const id = useId();
 
         return (
           <>
-            <h1>일일리포트 작성</h1>
-
-            <Table reportItems={reportItems} setReportItems={setReportItems} setName={setName} setProject={setProject} setDescription={setDescription} />
-            <span>(팁: 아이템을 누르면 삭제하실 수 있고, 삭제된 아이템은 바로 편집할 수 있도록 필드에 다시 입력됩니다.)</span>
-                   <ReportForm reportItems={reportItems} setReportItems={setReportItems} name={name} setName={setName} project={project} setProject={setProject} description={description} setDescription={setDescription} />
-
-            <h2>JSON Webex로 보내기</h2>
-            <RawJSONView  reportItems={reportItems} setReportItems={setReportItems} />
-
-                   <h2>팀원 JSON 병합</h2>
-            <TeamJSONMerge reportItems={reportItems} setReportItems={setReportItems} />
+            <input
+              className="transition-all accent-blue-500 w-4 h-4"
+              id={id}
+              type="checkbox"
+              {...props}
+            />
+            <label className="ms-2" htmlFor={id}>{children}</label>
           </>
         );
       }
 
 
-function TeamJSONMerge({ reportItems, setReportItems }) {
-       const [jsonText, setJsonText] = useState("");
-
-  const startImport = (e) => {
-    try {
-      const parsed = JSON.parse(jsonText);
-
-parsed.forEach(user => {
-    const { name, projects } = user;
-    projects.forEach(project => {
-      const { name: projectName, items } = project;
-      items.forEach(description => {
-        console.log("adding ", {name, projectName, description});
-        addNewItem(reportItems, setReportItems, name, projectName, description);
-      });
-    });
-  });
-
-      // Clear
-      setJsonText("");
-
-    } catch (err) {
-      alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
-    }
-  };
-
-  const clipboardPaste = async () => {
-      try {
-      // Check if the Clipboard API is supported
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        const text = await navigator.clipboard.readText();
-        setJsonText(text);
-      } else {
-        console.error("이 브라우저는 이 기능을 지원하지 않습니다.");
-      }
-    } catch (err) {
-      alert("오류가 발생했습니다.");
-      console.error("Failed to read clipboard contents:", err);
-    }
-  }
-
-
-    return (<>
-      <textarea
-        style={{ width: '100%', height: '100px', fontFamily: 'monospace' }}
-        value={jsonText}   
-onChange={e => setJsonText(e.target.value)}
-   />
-     <button onClick={clipboardPaste}>클립보드에서 붙여넣기</button>
-     <button onClick={startImport}>병합</button>
-     </>
-);
-}
-
-function RawJSONView({ reportItems, setReportItems }) {
-       // Convert current state into JSON (for export)
-       const jsonText = JSON.stringify(reportItems, null, 2);
-
-       // Handle user JSON edits
-  const handleJsonChange = (e) => {
-    let text = e.target.value;
-    if (text === "") { text = "[]" }
-    try {
-      const parsed = JSON.parse(text);
-      setReportItems(parsed);
-    } catch (err) {
-      alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
-    }
-  };
-
-  const clipboardCopy = () => {
-    navigator.clipboard.writeText(jsonText);
-    alert("복사되었습니다. Webex로 전송해주세요.");
-  };
-
-
-    return (<>
-      <textarea
-        style={{ width: '100%', height: '200px', fontFamily: 'monospace' }}
-        value={jsonText}
-        onChange={handleJsonChange}
-      />
-     <button onClick={clipboardCopy}>클립보드에 복사</button>
-     </>
-);
-}
-
-function addNewItem(reportItems, setReportItems, name, project, description) {
-    if (!name || !project || !description) return;
-
-    // Clean up whitespace
-    var name = name.trim();
-    var project = project.trim();
-    var description = description.trim();
-
-    setReportItems(prev => {
-      const updated = [...prev];
-      const personIndex = updated.findIndex(item => item.name === name);
-
-      const newProject = {
-        name: project,
-        items: [description]
-      };
-
-      if (personIndex === -1) {
-        // New person
-        updated.push({
-          name,
-          projects: [newProject]
-        });
-      } else {
-        // Existing person
-        const existingProjectIndex = updated[personIndex].projects.findIndex(
-          p => p.name === project
+      function TextArea({...props}) {
+        return (
+            <textarea
+              className="font-mono w-full h-48 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {...props}
+            />
         );
-
-        if (existingProjectIndex === -1) {
-          // New project
-          updated[personIndex].projects.push(newProject);
-        } else {
-          // Add to existing project
-          updated[personIndex].projects[existingProjectIndex].items.push(description);
-        }
       }
 
-      return updated;
-    });
-}
+      function Button({children, className = '', ...props}) {
+        return (
+          <button
+            className={"bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 " + className}
+            {...props}
+          >
+            {children}
+          </button>
+        );
+      }
 
-function sortBySeniority(reportItems) {
-  // Create a name -> index map for fast lookup
-  const orderMap = names.reduce((acc, name, index) => {
-    acc[name] = index;
-    return acc;
-  }, {});
+      function Dropdown({className = '', ...props}) {
+        return (
+          <select
+            className={"border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 " + className}
+            {...props}
+          />
+        );
+      }
 
-  // Return a new sorted array
-  return [...reportItems].sort((a, b) => {
-    const indexA = orderMap[a.name] ?? Infinity;
-    const indexB = orderMap[b.name] ?? Infinity;
-    return indexA - indexB;
-  });
-};
+      function TextBox({className = '', ...props}) {
+        return (
+          <input
+            className={"border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 " + className}
+            {...props}
+          />
+        );
+      }
 
-function sortByProject(reportItems) {
-  // Create a project -> index map for fast lookup
-  const projectOrderMap = projectPreselect.reduce((acc, project, index) => {
-    acc[project] = index;
-    return acc;
-  }, {});
 
-  return reportItems.map(item => ({
-    ...item,
-    projects: [...item.projects].sort((a, b) => {
-      const indexA = projectOrderMap[a.name] ?? Infinity;
-      const indexB = projectOrderMap[b.name] ?? Infinity;
-      return indexA - indexB;
-    })
-  }));
-};
+      function RawJSONView({ reportItems, setReportItems, className = '' }) {
+        // Convert current state into JSON (for export)
+        const jsonText = JSON.stringify(reportItems, null, 2);
 
-function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription }) {
-  const handleAdd = () => {
-    if (!name || !project || !description) return;
+        // Handle user JSON edits
+        const handleJsonChange = (e) => {
+          let text = e.target.value;
+          if (text === "") { text = "[]" }
+          try {
+            const parsed = JSON.parse(text);
+            setReportItems(parsed);
+          } catch (err) {
+            alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+          }
+        };
 
-    addNewItem(reportItems, setReportItems, name, project, description);
+        const clipboardCopy = () => {
+          navigator.clipboard.writeText(jsonText);
+          alert("복사되었습니다. Webex로 전송해주세요.");
+        };
 
-    // Clear fields
-    //setName('');
-    //setProject('');
-    setDescription('');
-  };
 
-  const handleEnter = (e) => {
-    if (e.key !== "Enter") return;
+        return (
+          <div className={className}>
+            <TextArea
+              value={jsonText}
+              onChange={handleJsonChange}
+            />
+            <Button onClick={clipboardCopy}>클립보드에 복사</Button>
+          </div>
+        );
+      }
 
-    handleAdd();
-  }
+      function TeamJSONMerge({ reportItems, setReportItems, className = '' }) {
+        const [jsonText, setJsonText] = useState("");
 
-  const nameInNames = names.includes(name);
-  const projectInPreselect = projectPreselect.includes(project);
+        const startImport = (e) => {
+          try {
+            const parsed = JSON.parse(jsonText);
 
-  return (
-    <div style={{ marginBottom: '20px' }}>
+            parsed.forEach(user => {
+              const { name, projects } = user;
+              projects.forEach(project => {
+                const { name: projectName, items } = project;
+                items.forEach(description => {
+                  addNewItem(reportItems, setReportItems, name, projectName, description);
+                });
+              });
+            });
 
-    <select value={name} onChange={e => setName(e.target.value)} placeholder="이름">
-      {names.map((name, index) => (
-        <option key={index} value={name}>
-          {name}
-        </option>
-      ))}
+            // Clear JSON after adding
+            setJsonText("");
+          } catch (err) {
+            alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+          }
+        };
 
-       {!nameInNames && name !== '' && (
-          <option value={name}>{name}</option>
-        )}
-    </select>
+        const clipboardPaste = async () => {
+          try {
+            // Check if the Clipboard API is supported
+            if (navigator.clipboard && navigator.clipboard.readText) {
+              const text = await navigator.clipboard.readText();
+              setJsonText(text);
+            } else {
+              console.error("이 브라우저는 이 기능을 지원하지 않습니다.");
+            }
+          } catch (err) {
+            alert("오류가 발생했습니다.");
+            console.error("Failed to read clipboard contents:", err);
+          }
+        }
 
-    <select value={project} onChange={e => setProject(e.target.value)} placeholder="프로젝트">
-      {projectPreselect.map((projectPre, index) => (
-        <option key={index} value={projectPre}>
-          {projectPre}
-        </option>
-      ))}
-	{!projectInPreselect && project !== '' && (
-          <option value={project}>직접입력</option>
-        )}
-    </select>
+        return (
+          <div className={className}>
+            <TextArea
+              value={jsonText}   
+              onChange={e => setJsonText(e.target.value)}
+            />
+            {/* Controls */}
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={clipboardPaste} className={"me-2"}>클립보드에서 붙여넣기</Button>
+              <Button onClick={startImport}>병합</Button>
+            </div>
+          </div>
+        );
+      }
 
-      <input
-        placeholder="프로젝트"
-        value={project}
-        onChange={e => setProject(e.target.value)}
-      />
-      <input
-        placeholder="업무 내용"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-        onKeyPress={handleEnter}
-      />
-      <button onClick={handleAdd}>추가</button>
-    </div>
-  );
-}
+      function addNewItem(reportItems, setReportItems, name, project, description) {
+        if (!name || !project || !description) return;
 
-function removeItem(data, nameIndex, projectIndex, itemIndex) {
-  return data
-    .map((person, pIdx) => {
-      if (pIdx !== nameIndex) return person;
+        // Clean up whitespace
+        var name = name.trim();
+        var project = project.trim();
+        var description = description.trim();
 
-      const updatedProjects = person.projects
-        .map((project, projIdx) => {
-          if (projIdx !== projectIndex) return project;
+        setReportItems(prev => {
+          const updated = [...prev];
+          const personIndex = updated.findIndex(item => item.name === name);
 
-          const updatedItems = project.items.filter((_, iIdx) => iIdx !== itemIndex);
-          if (updatedItems.length === 0) return null;
+          const newProject = {
+            name: project,
+            items: [description]
+          };
 
-          return { ...project, items: updatedItems };
-        })
-        .filter(project => project !== null);
+          if (personIndex === -1) {
+            // New person
+            updated.push({
+              name,
+              projects: [newProject]
+            });
+          } else {
+            // Existing person
+            const existingProjectIndex = updated[personIndex].projects.findIndex(
+              p => p.name === project
+            );
 
-      if (updatedProjects.length === 0) return null;
+            if (existingProjectIndex === -1) {
+              // New project
+              updated[personIndex].projects.push(newProject);
+            } else {
+              // Add to existing project
+              updated[personIndex].projects[existingProjectIndex].items.push(description);
+            }
+          }
+          return updated;
+        });
+      }
 
-      return { ...person, projects: updatedProjects };
-    })
-    .filter(person => person !== null);
-}
+      function sortBySeniority(reportItems) {
+        // Create a name -> index map for fast lookup
+        const orderMap = names.reduce((acc, name, index) => {
+          acc[name] = index;
+          return acc;
+        }, {});
+
+        // Return a new sorted array
+        return [...reportItems].sort((a, b) => {
+          const indexA = orderMap[a.name] ?? Infinity;
+          const indexB = orderMap[b.name] ?? Infinity;
+          return indexA - indexB;
+        });
+      }
+
+      function sortByProject(reportItems) {
+        // Create a project -> index map for fast lookup
+        const projectOrderMap = projectPreselect.reduce((acc, project, index) => {
+          acc[project] = index;
+          return acc;
+        }, {});
+
+        return reportItems.map(item => ({
+          ...item,
+          projects: [...item.projects].sort((a, b) => {
+            const indexA = projectOrderMap[a.name] ?? Infinity;
+            const indexB = projectOrderMap[b.name] ?? Infinity;
+            return indexA - indexB;
+          })
+        }));
+      }
+
+      function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription, className = '' }) {
+        const handleAdd = () => {
+          if (!name || !project || !description) return;
+          addNewItem(reportItems, setReportItems, name, project, description);
+
+          // Clear fields for next run
+          setDescription('');
+        }
+
+        const handleEnter = (e) => {
+          if (e.key !== "Enter") return;
+          handleAdd();
+        }
+
+        const nameInNames = names.includes(name);
+        const projectInPreselect = projectPreselect.includes(project);
+
+        return (
+          <div className={"flex flex-wrap gap-2 " + className}>
+            <Dropdown
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="이름"
+            >
+              {names.map((name, index) => (
+                <option key={index} value={name}>
+                  {name}
+                </option>
+              ))}
+
+              {!nameInNames && (
+                <option value={name}>{name}</option>
+              )}
+            </Dropdown>
+
+            <Dropdown
+              value={project}
+              onChange={e => setProject(e.target.value)}
+              placeholder="프로젝트"
+            >
+              {projectPreselect.map((projectPre, index) => (
+                <option key={index} value={projectPre}>
+                  {projectPre}
+                </option>
+              ))}
+	      {!projectInPreselect && (
+                <option value={project}>직접입력</option>
+              )}
+            </Dropdown>
+
+            <TextBox
+              placeholder="프로젝트"
+              value={project}
+              onChange={e => setProject(e.target.value)}
+            />
+            <TextBox
+              placeholder="업무 내용"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              onKeyPress={handleEnter}
+              autofocus
+            />
+            <Button onClick={handleAdd}>추가</Button>
+          </div>
+        );
+      }
+
+      function removeItem(data, nameIndex, projectIndex, itemIndex) {
+        return data
+          .map((person, pIdx) => {
+            if (pIdx !== nameIndex) return person;
+            const updatedProjects = person.projects
+              .map((project, projIdx) => {
+                if (projIdx !== projectIndex) return project;
+                const updatedItems = project.items.filter((_, iIdx) => iIdx !== itemIndex);
+                if (updatedItems.length === 0) return null;
+                return { ...project, items: updatedItems };
+              })
+              .filter(project => project !== null);
+            if (updatedProjects.length === 0) return null;
+            return { ...person, projects: updatedProjects };
+          })
+          .filter(person => person !== null);
+      }
 
       function Table({reportItems, setReportItems, setName, setProject, setDescription}) {
-        // Always sort by name first
-        const sortedItems = sortBySeniority(sortByProject(reportItems));
+        const [futurePlansMode, setFuturePlansMode] = useState(false);
+        const headingText = futurePlansMode ? "차주" : "금일";
+
+        const [sortName, setSortName] = useState(true);
+        const [sortProject, setSortProject] = useState(true);
+
+        var sortedItems = reportItems;
+
+	if (sortProject) sortedItems = sortByProject(sortedItems);
+	if (sortName) sortedItems = sortBySeniority(sortedItems);
 
         const deleteItem = (person_idx, project_idx, job_idx) => {
-if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
-    return; // cancel
-}
+          if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
+            return; // cancel
+          }
 
-            const targetPerson = sortedItems[person_idx];
-            const targetProject = targetPerson["projects"][project_idx];
-            const targetDescription = targetProject["items"][job_idx];
+          const targetPerson = sortedItems[person_idx];
+          const targetProject = targetPerson["projects"][project_idx];
+          const targetDescription = targetProject["items"][job_idx];
 
-            setReportItems(removeItem(sortedItems, person_idx, project_idx, job_idx));
+          setReportItems(removeItem(sortedItems, person_idx, project_idx, job_idx));
 
-            setName(targetPerson["name"]);
-            setProject(targetProject["name"]);
-            setDescription(targetDescription);
-       
+          setName(targetPerson["name"]);
+          setProject(targetProject["name"]);
+          setDescription(targetDescription);       
         };
-return (
-  <table border="1">
-    <thead>
-      <tr>
-        <th style={{ textAlign: 'center' }}>이름</th>
-        <th style={{ textAlign: 'center' }}>프로젝트</th>
-        <th style={{ textAlign: 'center' }}>금일 업무 내용</th>
-      </tr>
-    </thead>
-    <tbody>
-      {sortedItems.length === 0 ? (
-        <tr>
-          <td colSpan="3" style={{ textAlign: 'center' }}>
-            아이템이 없습니다. 아래에서 추가하세요!
-          </td>
-        </tr>
-      ) : (
-        sortedItems.map((person, person_idx) =>
-          person.projects.map((project, project_idx) => (
-            <tr key={person.name + project.name}>
-              {project_idx === 0 && (
-                <td rowSpan={person.projects.length}>{person.name}</td>
+
+        return (
+          <div id="report-table">
+            <div id="table-options" className="mb-4">
+              <LabeledCheckbox
+                checked={futurePlansMode}
+                onChange={e => setFuturePlansMode(e.target.checked)}
+              >
+                차주 보고서 헤더
+              </LabeledCheckbox><br />
+
+              <LabeledCheckbox
+                checked={sortName}
+                onChange={e => setSortName(e.target.checked)}
+              >
+                이름 정렬
+              </LabeledCheckbox><br />
+
+              <LabeledCheckbox
+                checked={sortProject}
+                onChange={e => setSortProject(e.target.checked)}
+              >
+                프로젝트 정렬
+              </LabeledCheckbox><br />
+            </div>
+
+            <table border="1" className="w-full border-collapse border border-black">
+              <thead>
+                <tr>
+                  <th className="text-center border border-black p-2">이름</th>
+                  <th className="text-center border border-black p-2">프로젝트</th>
+                  <th className="text-center border border-black p-2">{headingText} 업무 내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="text-center border border-black p-2">
+                      아이템이 없습니다. 아래에서 추가하세요!
+                    </td>
+                  </tr>
+                ) : (
+                  sortedItems.map((person, person_idx) =>
+                    person.projects.map((project, project_idx) => (
+                      <tr key={person.name + project.name}>
+                      {project_idx === 0 && (
+                        <td className="border border-black p-2" rowSpan={person.projects.length}>{person.name}</td>
+                      )}
+                      <td className="border border-black p-2">{project.name}</td>
+                      <td className="border border-black p-2">
+                        <ul>
+                          {project.items.map((item, job_idx) => (
+                            <li
+                              className="list-disc ms-5 cursor-pointer hover:text-gray-700"
+                              key={job_idx}
+                              onClick={e => { deleteItem(person_idx, project_idx, job_idx) }}
+                            >
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </td>
+                    </tr>
+                  ))
+                )
               )}
-              <td>{project.name}</td>
-              <td>
-                <ul>
-                  {project.items.map((item, job_idx) => (
-                    <li className="jobitem" key={job_idx} onClick={e => { deleteItem(person_idx, project_idx, job_idx) }}>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </td>
-            </tr>
-          ))
-        )
-      )}
-    </tbody>
-  </table>
-);
+              </tbody>
+            </table>
+          </div>
+        );
       }
 
       const rootElement = document.getElementById('root');
-      const root = ReactDOM.createRoot(rootElement);
+      const root = ReactDOMClient.createRoot(rootElement);
       root.render(<App />);
     </script>
   </body>
