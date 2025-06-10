@@ -238,7 +238,9 @@
         const startImport = (e) => {
           if (jsonTextEmpty) return;
 
-          const previousItems = reportItems;
+          // Store previous report items in merge history
+          const previousItems = structuredClone(reportItems);
+          setMergeHistory([...mergeHistory, previousItems]);
           try {
             const parsed = JSON.parse(jsonText);
 
@@ -254,8 +256,6 @@
 
             // Clear JSON after adding
             setJsonText("");
-            // Store previous report items in merge history
-            setMergeHistory([...mergeHistory, previousItems]);
           } catch (err) {
             alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
           }
@@ -270,9 +270,7 @@
           }
 
           const newHistory = [...mergeHistory];
-
-          setReportItems(mergeHistory.pop());
-          newHistory.pop();
+          setReportItems(newHistory.pop());
           setMergeHistory(newHistory);
         };
 
