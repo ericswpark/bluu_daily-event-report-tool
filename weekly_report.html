@@ -181,6 +181,8 @@
 
 
       function RawJSONView({ reportItems, setReportItems, className = '' }) {
+        const isEmpty = reportItems.length === 0;
+
         // Convert current state into JSON (for export)
         const jsonText = JSON.stringify(reportItems, null, 2);
 
@@ -201,6 +203,16 @@
           alert("복사되었습니다. Webex로 전송해주세요.");
         };
 
+        const resetAll = () => {
+          if (typeof window !== 'undefined' && !confirm("초기화하시겠어요? 모든 아이템이 삭제됩니다!")) {
+            return; // cancel
+          }
+
+          setReportItems([]);
+        };
+
+        const resetAllHelpText = isEmpty ?
+          "초기화를 진행하려면 아이템이 존재해야 합니다." : "모든 아이템을 삭제합니다.";
 
         return (
           <div className={className}>
@@ -208,7 +220,10 @@
               value={jsonText}
               onChange={handleJsonChange}
             />
-            <Button onClick={clipboardCopy}>클립보드에 복사</Button>
+            <div className="flex flex-wrap justify-between gap-2">
+              <Button onClick={clipboardCopy}>클립보드에 복사</Button>
+              <Button type="danger" onClick={resetAll} disabled={isEmpty} title={resetAllHelpText}>초기화</Button>
+            </div>
           </div>
         );
       }
