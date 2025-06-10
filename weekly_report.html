@@ -21,7 +21,10 @@
       import ReactDOMClient from "https://esm.sh/react-dom@19/client"
 
       const { useState, useEffect, useId } = React;
-      const LOCAL_STORAGE_KEY = 'weekly-report-items';
+      const REPORT_ITEMS_KEY = 'weekly-report-items';
+      const NAME_KEY = 'add-name-field';
+      const PROJECT_KEY = 'add-project-field';
+      const DESC_KEY = 'add-desc-field';
 
       const names = ["박선우"];
       const projectPreselect = ["Demo Project", "Other"];
@@ -29,9 +32,14 @@
       function App() {
         const [reportItems, setReportItems] = useState([]);
 
+        // New report item fields (also used for editing)
+        const [name, setName] = useState(names[0]);
+        const [project, setProject] = useState(projectPreselect[0]);
+        const [description, setDescription] = useState('');
+
         // Load saved report items on initial page load
         useEffect(() => {
-          const storedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+          const storedItems = localStorage.getItem(REPORT_ITEMS_KEY);
           if (storedItems) {
             try {
               setReportItems(JSON.parse(storedItems));
@@ -41,17 +49,40 @@
           } else {
             console.log("No stored items.");
           }
+
+          const storedName = localStorage.getItem(NAME_KEY);
+          if (storedName) {
+            setName(storedName);
+          }
+
+          const storedProject = localStorage.getItem(PROJECT_KEY);
+          if (storedProject) {
+            setProject(storedProject);
+          }
+
+          const storedDesc = localStorage.getItem(DESC_KEY);
+          if (storedDesc) {
+            setDescription(storedDesc);
+          }
         }, []);
 
         // Save reported items on change
         useEffect(() => {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reportItems));
+          localStorage.setItem(REPORT_ITEMS_KEY, JSON.stringify(reportItems));
         }, [reportItems]);
 
-        // New report item fields (also used for editing)
-        const [name, setName] = useState(names[0]);
-        const [project, setProject] = useState(projectPreselect[0]);
-        const [description, setDescription] = useState('');
+        // Save fields on change
+        useEffect(() => {
+          localStorage.setItem(NAME_KEY, name);
+        }, [name]);
+
+        useEffect(() => {
+          localStorage.setItem(PROJECT_KEY, project);
+        }, [project]);
+
+        useEffect(() => {
+          localStorage.setItem(DESC_KEY, description);
+        }, [description]);
 
         return (
           <div className="max-w-4xl mx-auto px-8">
@@ -91,7 +122,7 @@
         const id = useId();
 
         return (
-          <>
+          <div className="flex flex-wrap items-center">
             <input
               className="transition-all accent-blue-500 w-4 h-4"
               id={id}
@@ -99,7 +130,7 @@
               {...props}
             />
             <label className="ms-2" htmlFor={id}>{children}</label>
-          </>
+          </div>
         );
       }
 
@@ -113,10 +144,16 @@
         );
       }
 
-      function Button({children, className = '', ...props}) {
+      function Button({type, children, className = '', ...props}) {
+        const buttonColor = type === "danger" ? "red" : "blue";
+        const disabled = props.disabled;
+
         return (
           <button
-            className={"bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 " + className}
+            className={`bg-${buttonColor}-500 text-white font-bold py-2 px-4 rounded hover:bg-${buttonColor}-600 ` +
+              (disabled ? "opacity-50 cursor-not-allowed " : "") +
+              className
+            }
             {...props}
           >
             {children}
@@ -178,8 +215,15 @@
 
       function TeamJSONMerge({ reportItems, setReportItems, className = '' }) {
         const [jsonText, setJsonText] = useState("");
+        const [mergeHistory, setMergeHistory] = useState([]);
+
+        const historyEmpty = mergeHistory.length === 0;
+        const jsonTextEmpty = jsonText.length === 0;
 
         const startImport = (e) => {
+          if (jsonTextEmpty) return;
+
+          const previousItems = reportItems;
           try {
             const parsed = JSON.parse(jsonText);
 
@@ -195,9 +239,26 @@
 
             // Clear JSON after adding
             setJsonText("");
+            // Store previous report items in merge history
+            setMergeHistory([...mergeHistory, previousItems]);
           } catch (err) {
             alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
           }
+        };
+
+        const undoHistory = () => {
+          // Sanity check
+          if (historyEmpty) return;
+
+          if (typeof window !== 'undefined' && !confirm("마지막 병합 작업을 취소하시겠습니까?")) {
+            return; // cancel
+          }
+
+          const newHistory = [...mergeHistory];
+
+          setReportItems(mergeHistory.pop());
+          newHistory.pop();
+          setMergeHistory(newHistory);
         };
 
         const clipboardPaste = async () => {
@@ -213,18 +274,37 @@
             alert("오류가 발생했습니다.");
             console.error("Failed to read clipboard contents:", err);
           }
-        }
+        };
+
+        const handleKeyDown = (event) => {
+          if (event.ctrlKey && event.key === "Enter") {
+            event.preventDefault();
+            startImport();
+          } else if (event.ctrlKey && event.key === "z") {
+            event.preventDefault();
+            undoHistory();
+          }
+        };
+
+        const undoHistoryHelpText = historyEmpty ?
+          "현재 병합 내역이 비어있어 실행취소하실 수 없습니다." : "마지막 병합 작업을 실행취소하고 이전 단계로 되돌립니다.";
+        const startImportHelpText = jsonTextEmpty ?
+          "먼저 JSON을 입력해주세요." : "입력된 팀원의 JSON을 현재 JSON에 병합처리합니다.";
 
         return (
           <div className={className}>
             <TextArea
               value={jsonText}   
               onChange={e => setJsonText(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
             {/* Controls */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 justify-between">
               <Button onClick={clipboardPaste} className={"me-2"}>클립보드에서 붙여넣기</Button>
-              <Button onClick={startImport}>병합</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button type="danger" onClick={undoHistory} disabled={historyEmpty} title={undoHistoryHelpText}>실행 취소</Button>
+                <Button onClick={startImport} disabled={jsonTextEmpty} title={startImportHelpText}>병합</Button>
+              </div>
             </div>
           </div>
         );
@@ -304,8 +384,10 @@
       }
 
       function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription, className = '' }) {
+        const isValid = name && project && description;
+
         const handleAdd = () => {
-          if (!name || !project || !description) return;
+          if (!isValid) return;
           addNewItem(reportItems, setReportItems, name, project, description);
 
           // Clear fields for next run
@@ -321,51 +403,62 @@
         const projectInPreselect = projectPreselect.includes(project);
 
         return (
-          <div className={"flex flex-wrap gap-2 " + className}>
-            <Dropdown
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="이름"
-            >
-              {names.map((name, index) => (
-                <option key={index} value={name}>
-                  {name}
-                </option>
-              ))}
+          <div className={"flex flex-col flex-wrap gap-2 " + className}>
+            <div className="flex flex-wrap items-baseline gap-2 justify-between">
+              <div className="flex flex-wrap gap-2 items-baseline">
+                <label className="font-bold" htmlFor="name-field">이름</label>
+                <Dropdown
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  id="name-field"
+                >
+                  {names.map((name, index) => (
+                    <option key={index} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                  {!nameInNames && (
+                    <option value={name}>{name}</option>
+                  )}
+                </Dropdown>
+              </div>
 
-              {!nameInNames && (
-                <option value={name}>{name}</option>
-              )}
-            </Dropdown>
+              <div className="flex flex-wrap gap-2 items-baseline">
+                <label className="font-bold" htmlFor="project-field">프로젝트</label>
+                <Dropdown
+                  value={project}
+                  onChange={e => setProject(e.target.value)}
+                  id="project-field"
+                >
+                  {projectPreselect.map((projectPre, index) => (
+                    <option key={index} value={projectPre}>
+                      {projectPre}
+                    </option>
+                  ))}
+	          {!projectInPreselect && (
+                    <option value={project}>직접입력</option>
+                  )}
+                </Dropdown>
 
-            <Dropdown
-              value={project}
-              onChange={e => setProject(e.target.value)}
-              placeholder="프로젝트"
-            >
-              {projectPreselect.map((projectPre, index) => (
-                <option key={index} value={projectPre}>
-                  {projectPre}
-                </option>
-              ))}
-	      {!projectInPreselect && (
-                <option value={project}>직접입력</option>
-              )}
-            </Dropdown>
+                <TextBox
+                  placeholder="프로젝트"
+                  value={project}
+                  onChange={e => setProject(e.target.value)}
+                />
+              </div>
+            </div>
 
-            <TextBox
-              placeholder="프로젝트"
-              value={project}
-              onChange={e => setProject(e.target.value)}
-            />
-            <TextBox
-              placeholder="업무 내용"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              onKeyPress={handleEnter}
-              autofocus
-            />
-            <Button onClick={handleAdd}>추가</Button>
+            <div className="flex flex-wrap gap-2">
+              <TextBox
+                className="flex-grow"
+                placeholder="업무 내용"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                onKeyPress={handleEnter}
+                autofocus
+              />
+              <Button onClick={handleAdd} disabled={!isValid}>추가</Button>
+            </div>
           </div>
         );
       }
@@ -424,21 +517,20 @@
                 onChange={e => setFuturePlansMode(e.target.checked)}
               >
                 차주 보고서 헤더
-              </LabeledCheckbox><br />
-
+              </LabeledCheckbox>
               <LabeledCheckbox
                 checked={sortName}
                 onChange={e => setSortName(e.target.checked)}
               >
                 이름 정렬
-              </LabeledCheckbox><br />
+              </LabeledCheckbox>
 
               <LabeledCheckbox
                 checked={sortProject}
                 onChange={e => setSortProject(e.target.checked)}
               >
                 프로젝트 정렬
-              </LabeledCheckbox><br />
+              </LabeledCheckbox>
             </div>
 
             <table border="1" className="w-full border-collapse border border-black">
