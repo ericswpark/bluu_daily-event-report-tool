@@ -22,6 +22,7 @@
 
       const { useState, useEffect, useId } = React;
       const REPORT_ITEMS_KEY = 'weekly-report-items';
+      const BONGOCAT_KEY = 'bongocat-enabled';
       const NAME_KEY = 'add-name-field';
       const PROJECT_KEY = 'add-project-field';
       const DESC_KEY = 'add-desc-field';
@@ -455,6 +456,7 @@
           .filter(person => person !== null);
       }
 
+      /* From: https://codepen.io/carolineartz/pen/VwYwZaP */
       function BongoCat() {
         const [leftPawActive, setLeftPawActive] = useState(true);
         const [isTyping, setIsTyping] = useState(false);
@@ -554,8 +556,13 @@
         const [project, setProject] = useState(projectPreselect[0]);
         const [description, setDescription] = useState('');
 
-        // Load saved fields in add form on initial page load
+        // Load bongocat state and saved fields in add form on initial page load
         useEffect(() => {
+          const bongoCatEnabled = localStorage.getItem(BONGOCAT_KEY);
+          if (bongoCatEnabled && bongoCatEnabled === "true") {
+            setShowBongoCat(true);
+          }
+
           const storedName = localStorage.getItem(NAME_KEY);
           if (storedName) {
             setName(storedName);
@@ -584,6 +591,10 @@
         useEffect(() => {
           localStorage.setItem(DESC_KEY, description);
         }, [description]);
+
+        useEffect(() => {
+          localStorage.setItem(BONGOCAT_KEY, showBongoCat);
+        }, [showBongoCat]);
 
         var sortedItems = reportItems;
 
