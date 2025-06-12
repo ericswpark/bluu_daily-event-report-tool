@@ -1,500 +1,515 @@
 <!DOCTYPE html>
 <!-- QA dept. weekly report tool demo -->
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>일일리포트 작성지원도구</title>
 
-    <!-- Babel (for JSX support in the browser) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>일일리포트 작성지원도구</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
+  <!-- Babel (for JSX support in the browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <body>
-    <div id="root"></div>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
 
-    <script type="text/babel" data-type="module">
-      import React from "https://esm.sh/react@19"
-      import ReactDOMClient from "https://esm.sh/react-dom@19/client"
+<body>
+  <div id="root"></div>
 
-      const { useState, useEffect, useId } = React;
-      const REPORT_ITEMS_KEY = 'weekly-report-items';
-      const BONGOCAT_KEY = 'bongocat-enabled';
-      const NAME_KEY = 'add-name-field';
-      const PROJECT_KEY = 'add-project-field';
-      const DESC_KEY = 'add-desc-field';
+  <script type="text/babel" data-type="module">
+    import React from "https://esm.sh/react@19"
+    import ReactDOMClient from "https://esm.sh/react-dom@19/client"
 
-      const names = ["박선우"];
-      const projectPreselect = ["Demo Project", "Other"];
+    const { useState, useEffect, useId } = React;
+    const REPORT_ITEMS_KEY = 'weekly-report-items';
+    const BONGOCAT_KEY = 'bongocat-enabled';
+    const NAME_KEY = 'add-name-field';
+    const PROJECT_KEY = 'add-project-field';
+    const DESC_KEY = 'add-desc-field';
 
-      function App() {
-        const [reportItems, setReportItems] = useState([]);
+    const names = ["박선우"];
+    const projectPreselect = ["Demo Project", "Other"];
 
-        // Load saved report items on initial page load
-        useEffect(() => {
-          const storedItems = localStorage.getItem(REPORT_ITEMS_KEY);
-          if (storedItems) {
-            try {
-              setReportItems(JSON.parse(storedItems));
-            } catch (e) {
-              console.error('Failed to parse stored reportItems:', e);
-            }
-          } else {
-            console.log("No stored items.");
+    function App() {
+      const [reportItems, setReportItems] = useState([]);
+
+      // Load saved report items on initial page load
+      useEffect(() => {
+        const storedItems = localStorage.getItem(REPORT_ITEMS_KEY);
+        if (storedItems) {
+          try {
+            setReportItems(JSON.parse(storedItems));
+          } catch (e) {
+            console.error('Failed to parse stored reportItems:', e);
           }
-        }, []);
+        } else {
+          console.log("No stored items.");
+        }
+      }, []);
 
-        // Save reported items on change
-        useEffect(() => {
-          localStorage.setItem(REPORT_ITEMS_KEY, JSON.stringify(reportItems));
-        }, [reportItems]);
+      // Save reported items on change
+      useEffect(() => {
+        localStorage.setItem(REPORT_ITEMS_KEY, JSON.stringify(reportItems));
+      }, [reportItems]);
 
-        return (
-          <div className="max-w-4xl mx-auto px-8">
-            <h1 className="text-3xl my-4">일일리포트 작성</h1>
-            <Table
-              reportItems={reportItems}
-              setReportItems={setReportItems} />
+      return (
+        <div className="max-w-4xl mx-auto px-8">
+          <h1 className="text-3xl my-4">일일리포트 작성</h1>
+          <Table
+            reportItems={reportItems}
+            setReportItems={setReportItems} />
 
-            <h2 className="text-2xl mb-4">JSON Webex로 보내기</h2>
-            <RawJSONView reportItems={reportItems} setReportItems={setReportItems} className="mb-4" />
+          <h2 className="text-2xl mb-4">JSON Webex로 보내기</h2>
+          <RawJSONView reportItems={reportItems} setReportItems={setReportItems} className="mb-4" />
 
-            <h2 className="text-2xl mb-4">팀원 JSON 병합</h2>
-            <TeamJSONMerge reportItems={reportItems} setReportItems={setReportItems} className="mb-4" />
-          </div>
-        );
-      }
+          <h2 className="text-2xl mb-4">팀원 JSON 병합</h2>
+          <TeamJSONMerge reportItems={reportItems} setReportItems={setReportItems} className="mb-4" />
+        </div>
+      );
+    }
 
-      // Define default components here
-      function LabeledCheckbox({children, ...props}) {
-        const id = useId();
+    // Define default components here
+    function LabeledCheckbox({ children, ...props }) {
+      const id = useId();
 
-        return (
-          <div className="flex flex-wrap items-center">
-            <input
-              className="transition-all accent-blue-500 w-4 h-4"
-              id={id}
-              type="checkbox"
-              {...props}
-            />
-            <label className="ms-2" htmlFor={id}>{children}</label>
-          </div>
-        );
-      }
-
-
-      function TextArea({...props}) {
-        return (
-            <textarea
-              className="font-mono w-full h-48 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              {...props}
-            />
-        );
-      }
-
-      function Button({type, children, className = '', ...props}) {
-        const buttonColor = type === "danger" ? "red" : "blue";
-        const disabled = props.disabled;
-
-        return (
-          <button
-            className={`bg-${buttonColor}-500 text-white font-bold py-2 px-4 rounded hover:bg-${buttonColor}-600 ` +
-              (disabled ? "opacity-50 cursor-not-allowed " : "") +
-              className
-            }
-            {...props}
-          >
-            {children}
-          </button>
-        );
-      }
-
-      function Dropdown({className = '', ...props}) {
-        return (
-          <select
-            className={"border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 " + className}
-            {...props}
-          />
-        );
-      }
-
-      function TextBox({className = '', ...props}) {
-        return (
+      return (
+        <div className="flex flex-wrap items-center">
           <input
-            className={"border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 " + className}
+            className="transition-all accent-blue-500 w-4 h-4"
+            id={id}
+            type="checkbox"
             {...props}
           />
-        );
-      }
+          <label className="ms-2" htmlFor={id}>{children}</label>
+        </div>
+      );
+    }
 
 
-      function RawJSONView({ reportItems, setReportItems, className = '' }) {
-        const isEmpty = reportItems.length === 0;
+    function TextArea({ ...props }) {
+      return (
+        <textarea
+          className="font-mono w-full h-48 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {...props}
+        />
+      );
+    }
 
-        // Convert current state into JSON (for export)
-        const jsonText = JSON.stringify(reportItems, null, 2);
+    function Button({ type, children, className = '', ...props }) {
+      const buttonColor = type === "danger" ? "red" : "blue";
+      const disabled = props.disabled;
 
-        // Handle user JSON edits
-        const handleJsonChange = (e) => {
-          let text = e.target.value;
-          if (text === "") { text = "[]" }
-          try {
-            const parsed = JSON.parse(text);
-            setReportItems(parsed);
-          } catch (err) {
-            alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+      return (
+        <button
+          className={`bg-${buttonColor}-500 text-white font-bold py-2 px-4 rounded hover:bg-${buttonColor}-600 ` +
+            (disabled ? "opacity-50 cursor-not-allowed " : "") +
+            className
           }
-        };
+          {...props}
+        >
+          {children}
+        </button>
+      );
+    }
 
-        const clipboardCopy = () => {
-          navigator.clipboard.writeText(jsonText);
-          alert("복사되었습니다. Webex로 전송해주세요.");
-        };
+    function Dropdown({ className = '', ...props }) {
+      return (
+        <select
+          className={"border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 " + className}
+          {...props}
+        />
+      );
+    }
 
-        const resetAll = () => {
-          if (typeof window !== 'undefined' && !confirm("초기화하시겠어요? 모든 아이템이 삭제됩니다!")) {
-            return; // cancel
-          }
+    function TextBox({ className = '', ...props }) {
+      return (
+        <input
+          className={"border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 " + className}
+          {...props}
+        />
+      );
+    }
 
-          setReportItems([]);
-        };
 
-        const resetAllHelpText = isEmpty ?
-          "초기화를 진행하려면 아이템이 존재해야 합니다." : "모든 아이템을 삭제합니다.";
+    function RawJSONView({ reportItems, setReportItems, className = '' }) {
+      const isEmpty = reportItems.length === 0;
 
-        return (
-          <div className={className}>
-            <TextArea
-              value={jsonText}
-              onChange={handleJsonChange}
-            />
-            <div className="flex flex-wrap justify-between gap-2">
-              <Button onClick={clipboardCopy}>클립보드에 복사</Button>
-              <Button type="danger" onClick={resetAll} disabled={isEmpty} title={resetAllHelpText}>초기화</Button>
-            </div>
+      // Convert current state into JSON (for export)
+      const jsonText = JSON.stringify(reportItems, null, 2);
+
+      // Handle user JSON edits
+      const handleJsonChange = (e) => {
+        let text = e.target.value;
+        if (text === "") { text = "[]" }
+        try {
+          const parsed = JSON.parse(text);
+          setReportItems(parsed);
+        } catch (err) {
+          alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+        }
+      };
+
+      const clipboardCopy = () => {
+        navigator.clipboard.writeText(jsonText);
+        alert("복사되었습니다. Webex로 전송해주세요.");
+      };
+
+      const resetAll = () => {
+        if (typeof window !== 'undefined' && !confirm("초기화하시겠어요? 모든 아이템이 삭제됩니다!")) {
+          return; // cancel
+        }
+
+        setReportItems([]);
+      };
+
+      const resetAllHelpText = isEmpty ?
+        "초기화를 진행하려면 아이템이 존재해야 합니다." : "모든 아이템을 삭제합니다.";
+
+      return (
+        <div className={className}>
+          <TextArea
+            value={jsonText}
+            onChange={handleJsonChange}
+          />
+          <div className="flex flex-wrap justify-between gap-2">
+            <Button onClick={clipboardCopy}>클립보드에 복사</Button>
+            <Button type="danger" onClick={resetAll} disabled={isEmpty} title={resetAllHelpText}>초기화</Button>
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
-      function TeamJSONMerge({ reportItems, setReportItems, className = '' }) {
-        const [jsonText, setJsonText] = useState("");
-        const [mergeHistory, setMergeHistory] = useState([]);
+    function TeamJSONMerge({ reportItems, setReportItems, className = '' }) {
+      const [jsonText, setJsonText] = useState("");
+      const [mergeHistory, setMergeHistory] = useState([]);
 
-        const historyEmpty = mergeHistory.length === 0;
-        const jsonTextEmpty = jsonText.length === 0;
+      const historyEmpty = mergeHistory.length === 0;
+      const jsonTextEmpty = jsonText.length === 0;
 
-        const startImport = (e) => {
-          if (jsonTextEmpty) return;
+      const startImport = (e) => {
+        if (jsonTextEmpty) return;
 
-          // Store previous report items in merge history
-          const previousItems = structuredClone(reportItems);
-          setMergeHistory([...mergeHistory, previousItems]);
-          try {
-            const parsed = JSON.parse(jsonText);
+        // Store previous report items in merge history
+        const previousItems = structuredClone(reportItems);
+        setMergeHistory([...mergeHistory, previousItems]);
+        try {
+          const parsed = JSON.parse(jsonText);
 
-            parsed.forEach(user => {
-              const { name, projects } = user;
-              projects.forEach(project => {
-                const { name: projectName, items } = project;
-                items.forEach(description => {
-                  addNewItem(reportItems, setReportItems, name, projectName, description);
-                });
+          parsed.forEach(user => {
+            const { name, projects } = user;
+            projects.forEach(project => {
+              const { name: projectName, items } = project;
+              items.forEach(description => {
+                addNewItem(reportItems, setReportItems, name, projectName, description);
               });
             });
+          });
 
-            // Clear JSON after adding
-            setJsonText("");
-          } catch (err) {
-            alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
-          }
-        };
+          // Clear JSON after adding
+          setJsonText("");
+        } catch (err) {
+          alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
+        }
+      };
 
-        const undoHistory = () => {
-          // Sanity check
-          if (historyEmpty) return;
+      const undoHistory = () => {
+        // Sanity check
+        if (historyEmpty) return;
 
-          if (typeof window !== 'undefined' && !confirm("마지막 병합 작업을 취소하시겠습니까?")) {
-            return; // cancel
-          }
-
-          const newHistory = [...mergeHistory];
-          setReportItems(newHistory.pop());
-          setMergeHistory(newHistory);
-        };
-
-        const clipboardPaste = async () => {
-          try {
-            // Check if the Clipboard API is supported
-            if (navigator.clipboard && navigator.clipboard.readText) {
-              const text = await navigator.clipboard.readText();
-              setJsonText(text);
-            } else {
-              console.error("이 브라우저는 이 기능을 지원하지 않습니다.");
-            }
-          } catch (err) {
-            alert("오류가 발생했습니다.");
-            console.error("Failed to read clipboard contents:", err);
-          }
-        };
-
-        const handleKeyDown = (event) => {
-          if (event.ctrlKey && event.key === "Enter") {
-            event.preventDefault();
-            startImport();
-          } else if (event.ctrlKey && event.key === "z") {
-            event.preventDefault();
-            undoHistory();
-          }
-        };
-
-        const undoHistoryHelpText = historyEmpty ?
-          "현재 병합 내역이 비어있어 실행취소하실 수 없습니다." : "마지막 병합 작업을 실행취소하고 이전 단계로 되돌립니다.";
-        const startImportHelpText = jsonTextEmpty ?
-          "먼저 JSON을 입력해주세요." : "입력된 팀원의 JSON을 현재 JSON에 병합처리합니다.";
-
-        return (
-          <div className={className}>
-            <TextArea
-              value={jsonText}   
-              onChange={e => setJsonText(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            {/* Controls */}
-            <div className="flex flex-wrap gap-2 justify-between">
-              <Button onClick={clipboardPaste} className={"me-2"}>클립보드에서 붙여넣기</Button>
-              <div className="flex flex-wrap gap-2">
-                <Button type="danger" onClick={undoHistory} disabled={historyEmpty} title={undoHistoryHelpText}>실행 취소</Button>
-                <Button onClick={startImport} disabled={jsonTextEmpty} title={startImportHelpText}>병합</Button>
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      function addNewItem(reportItems, setReportItems, name, project, description) {
-        if (!name || !project || !description) return;
-
-        // Clean up whitespace
-        var name = name.trim();
-        var project = project.trim();
-        var description = description.trim();
-
-        setReportItems(prev => {
-          const updated = [...prev];
-          const personIndex = updated.findIndex(item => item.name === name);
-
-          const newProject = {
-            name: project,
-            items: [description]
-          };
-
-          if (personIndex === -1) {
-            // New person
-            updated.push({
-              name,
-              projects: [newProject]
-            });
-          } else {
-            // Existing person
-            const existingProjectIndex = updated[personIndex].projects.findIndex(
-              p => p.name === project
-            );
-
-            if (existingProjectIndex === -1) {
-              // New project
-              updated[personIndex].projects.push(newProject);
-            } else {
-              // Add to existing project
-              updated[personIndex].projects[existingProjectIndex].items.push(description);
-            }
-          }
-          return updated;
-        });
-      }
-
-      function sortBySeniority(reportItems) {
-        // Create a name -> index map for fast lookup
-        const orderMap = names.reduce((acc, name, index) => {
-          acc[name] = index;
-          return acc;
-        }, {});
-
-        // Return a new sorted array
-        return [...reportItems].sort((a, b) => {
-          const indexA = orderMap[a.name] ?? Infinity;
-          const indexB = orderMap[b.name] ?? Infinity;
-          return indexA - indexB;
-        });
-      }
-
-      function sortByProject(reportItems) {
-        // Create a project -> index map for fast lookup
-        const projectOrderMap = projectPreselect.reduce((acc, project, index) => {
-          acc[project] = index;
-          return acc;
-        }, {});
-
-        return reportItems.map(item => ({
-          ...item,
-          projects: [...item.projects].sort((a, b) => {
-            const indexA = projectOrderMap[a.name] ?? Infinity;
-            const indexB = projectOrderMap[b.name] ?? Infinity;
-            return indexA - indexB;
-          })
-        }));
-      }
-
-      const BONGO_CAT_ACTIVATE = ["bongocat", "bongo cat"];
-      const BONGO_CAT_DEACTIVATE = ["hidebongocat", "byebongocat", "hide bongocat", "bye bongocat", "hide bongo cat", "bye bongo cat"];
-
-      function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription, setShowBongoCat, className = '' }) {
-        const isValid = name && project && description;
-
-        const handleAdd = () => {
-          if (!isValid) return;
-
-          // Check for magic values or add new item
-          if (BONGO_CAT_ACTIVATE.includes(project) || BONGO_CAT_ACTIVATE.includes(description)) {
-            setShowBongoCat(true);
-          } else if (BONGO_CAT_DEACTIVATE.includes(project) || BONGO_CAT_DEACTIVATE.includes(description)) {
-            setShowBongoCat(false);
-          } else {
-            addNewItem(reportItems, setReportItems, name, project, description);
-          }
-
-          // Clear fields for next run
-          setDescription('');
+        if (typeof window !== 'undefined' && !confirm("마지막 병합 작업을 취소하시겠습니까?")) {
+          return; // cancel
         }
 
-        const handleEnter = (e) => {
-          if (e.key !== "Enter") return;
-          handleAdd();
+        const newHistory = [...mergeHistory];
+        setReportItems(newHistory.pop());
+        setMergeHistory(newHistory);
+      };
+
+      const clipboardPaste = async () => {
+        try {
+          // Check if the Clipboard API is supported
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            setJsonText(text);
+          } else {
+            console.error("이 브라우저는 이 기능을 지원하지 않습니다.");
+          }
+        } catch (err) {
+          alert("오류가 발생했습니다.");
+          console.error("Failed to read clipboard contents:", err);
         }
+      };
 
-        const nameInNames = names.includes(name);
-        const projectInPreselect = projectPreselect.includes(project);
+      const handleKeyDown = (event) => {
+        if (event.ctrlKey && event.key === "Enter") {
+          event.preventDefault();
+          startImport();
+        } else if (event.ctrlKey && event.key === "z") {
+          event.preventDefault();
+          undoHistory();
+        }
+      };
 
-        return (
-          <div className={"flex flex-col flex-wrap gap-2 " + className}>
-            <div className="flex flex-wrap items-baseline gap-2 justify-between">
-              <div className="flex flex-wrap gap-2 items-baseline">
-                <label className="font-bold" htmlFor="name-field">이름</label>
-                <Dropdown
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  id="name-field"
-                >
-                  {names.map((name, index) => (
-                    <option key={index} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                  {!nameInNames && (
-                    <option value={name}>{name}</option>
-                  )}
-                </Dropdown>
-              </div>
+      const undoHistoryHelpText = historyEmpty ?
+        "현재 병합 내역이 비어있어 실행취소하실 수 없습니다." : "마지막 병합 작업을 실행취소하고 이전 단계로 되돌립니다.";
+      const startImportHelpText = jsonTextEmpty ?
+        "먼저 JSON을 입력해주세요." : "입력된 팀원의 JSON을 현재 JSON에 병합처리합니다.";
 
-              <div className="flex flex-wrap gap-2 items-baseline">
-                <label className="font-bold" htmlFor="project-field">프로젝트</label>
-                <Dropdown
-                  value={project}
-                  onChange={e => setProject(e.target.value)}
-                  id="project-field"
-                >
-                  {projectPreselect.map((projectPre, index) => (
-                    <option key={index} value={projectPre}>
-                      {projectPre}
-                    </option>
-                  ))}
-	          {!projectInPreselect && (
-                    <option value={project}>직접입력</option>
-                  )}
-                </Dropdown>
-
-                <TextBox
-                  placeholder="프로젝트"
-                  value={project}
-                  onChange={e => setProject(e.target.value)}
-                />
-              </div>
-            </div>
-
+      return (
+        <div className={className}>
+          <TextArea
+            value={jsonText}
+            onChange={e => setJsonText(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          {/* Controls */}
+          <div className="flex flex-wrap gap-2 justify-between">
+            <Button onClick={clipboardPaste} className={"me-2"}>클립보드에서 붙여넣기</Button>
             <div className="flex flex-wrap gap-2">
-              <TextBox
-                className="flex-grow"
-                placeholder="업무 내용"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                onKeyPress={handleEnter}
-                autofocus
-              />
-              <Button onClick={handleAdd} disabled={!isValid}>추가</Button>
+              <Button type="danger" onClick={undoHistory} disabled={historyEmpty} title={undoHistoryHelpText}>실행 취소</Button>
+              <Button onClick={startImport} disabled={jsonTextEmpty} title={startImportHelpText}>병합</Button>
             </div>
           </div>
-        );
+        </div>
+      );
+    }
+
+    function addNewItem(reportItems, setReportItems, name, project, description) {
+      if (!name || !project || !description) return;
+
+      // Clean up whitespace
+      var name = name.trim();
+      var project = project.trim();
+      var description = description.trim();
+
+      setReportItems(prev => {
+        const updated = [...prev];
+        const personIndex = updated.findIndex(item => item.name === name);
+
+        const newProject = {
+          name: project,
+          items: [description]
+        };
+
+        if (personIndex === -1) {
+          // New person
+          updated.push({
+            name,
+            projects: [newProject]
+          });
+        } else {
+          // Existing person
+          const existingProjectIndex = updated[personIndex].projects.findIndex(
+            p => p.name === project
+          );
+
+          if (existingProjectIndex === -1) {
+            // New project
+            updated[personIndex].projects.push(newProject);
+          } else {
+            // Add to existing project
+            updated[personIndex].projects[existingProjectIndex].items.push(description);
+          }
+        }
+        return updated;
+      });
+    }
+
+    function sortBySeniority(reportItems) {
+      // Create a name -> index map for fast lookup
+      const orderMap = names.reduce((acc, name, index) => {
+        acc[name] = index;
+        return acc;
+      }, {});
+
+      // Return a new sorted array
+      return [...reportItems].sort((a, b) => {
+        const indexA = orderMap[a.name] ?? Infinity;
+        const indexB = orderMap[b.name] ?? Infinity;
+        return indexA - indexB;
+      });
+    }
+
+    function sortByProject(reportItems) {
+      // Create a project -> index map for fast lookup
+      const projectOrderMap = projectPreselect.reduce((acc, project, index) => {
+        acc[project] = index;
+        return acc;
+      }, {});
+
+      return reportItems.map(item => ({
+        ...item,
+        projects: [...item.projects].sort((a, b) => {
+          const indexA = projectOrderMap[a.name] ?? Infinity;
+          const indexB = projectOrderMap[b.name] ?? Infinity;
+          return indexA - indexB;
+        })
+      }));
+    }
+
+    const BONGO_CAT_ACTIVATE = ["bongocat", "bongo cat"];
+    const BONGO_CAT_DEACTIVATE = ["hidebongocat", "byebongocat", "hide bongocat", "bye bongocat", "hide bongo cat", "bye bongo cat"];
+
+    function ReportForm({ reportItems, setReportItems, name, setName, project, setProject, description, setDescription, setShowBongoCat, className = '' }) {
+      const isValid = name && project && description;
+
+      const handleAdd = () => {
+        if (!isValid) return;
+
+        // Check for magic values or add new item
+        if (BONGO_CAT_ACTIVATE.includes(project) || BONGO_CAT_ACTIVATE.includes(description)) {
+          setShowBongoCat(true);
+        } else if (BONGO_CAT_DEACTIVATE.includes(project) || BONGO_CAT_DEACTIVATE.includes(description)) {
+          setShowBongoCat(false);
+        } else {
+          addNewItem(reportItems, setReportItems, name, project, description);
+        }
+
+        // Clear fields for next run
+        setDescription('');
       }
 
-      function removeItem(data, nameIndex, projectIndex, itemIndex) {
-        return data
-          .map((person, pIdx) => {
-            if (pIdx !== nameIndex) return person;
-            const updatedProjects = person.projects
-              .map((project, projIdx) => {
-                if (projIdx !== projectIndex) return project;
-                const updatedItems = project.items.filter((_, iIdx) => iIdx !== itemIndex);
-                if (updatedItems.length === 0) return null;
-                return { ...project, items: updatedItems };
-              })
-              .filter(project => project !== null);
-            if (updatedProjects.length === 0) return null;
-            return { ...person, projects: updatedProjects };
-          })
-          .filter(person => person !== null);
+      const handleEnter = (e) => {
+        if (e.key !== "Enter") return;
+        handleAdd();
       }
 
-      /* From: https://codepen.io/carolineartz/pen/VwYwZaP */
-      function BongoCat() {
-        const [leftPawActive, setLeftPawActive] = useState(true);
-        const [isTyping, setIsTyping] = useState(false);
+      const nameInNames = names.includes(name);
+      const projectInPreselect = projectPreselect.includes(project);
 
-        useEffect(() => {
-          const handleKeyDown = (e) => {
-            // Prevent multiple toggles if key is held down
-            if (!isTyping) {
-              setLeftPawActive((prev) => !prev);
-              setIsTyping(true);
-            }
-          };
-          const handleKeyUp = () => {
-            setIsTyping(false);
-          };
+      return (
+        <div className={"flex flex-col flex-wrap gap-2 " + className}>
+          <div className="flex flex-wrap items-baseline gap-2 justify-between">
+            <div className="flex flex-wrap gap-2 items-baseline">
+              <label className="font-bold" htmlFor="name-field">이름</label>
+              <Dropdown
+                value={name}
+                onChange={e => setName(e.target.value)}
+                id="name-field"
+              >
+                {names.map((name, index) => (
+                  <option key={index} value={name}>
+                    {name}
+                  </option>
+                ))}
+                {!nameInNames && (
+                  <option value={name}>{name}</option>
+                )}
+              </Dropdown>
+            </div>
 
-          window.addEventListener("keydown", handleKeyDown);
-          window.addEventListener("keyup", handleKeyUp);
+            <div className="flex flex-wrap gap-2 items-baseline">
+              <label className="font-bold" htmlFor="project-field">프로젝트</label>
+              <Dropdown
+                value={project}
+                onChange={e => setProject(e.target.value)}
+                id="project-field"
+              >
+                {projectPreselect.map((projectPre, index) => (
+                  <option key={index} value={projectPre}>
+                    {projectPre}
+                  </option>
+                ))}
+                {!projectInPreselect && (
+                  <option value={project}>직접입력</option>
+                )}
+              </Dropdown>
 
-          return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp);
-          };
-        }, []);
+              <TextBox
+                placeholder="프로젝트"
+                value={project}
+                onChange={e => setProject(e.target.value)}
+              />
+            </div>
+          </div>
 
-        const leftPawDown = isTyping && leftPawActive;
-        const rightPawDown = isTyping && !leftPawActive;
+          <div className="flex flex-wrap gap-2">
+            <TextBox
+              className="flex-grow"
+              placeholder="업무 내용"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              onKeyPress={handleEnter}
+              autofocus
+            />
+            <Button onClick={handleAdd} disabled={!isValid}>추가</Button>
+          </div>
+        </div>
+      );
+    }
 
-        return (
-          <div className="flex justify-end">
+    function removeItem(data, nameIndex, projectIndex, itemIndex) {
+      return data
+        .map((person, pIdx) => {
+          if (pIdx !== nameIndex) return person;
+          const updatedProjects = person.projects
+            .map((project, projIdx) => {
+              if (projIdx !== projectIndex) return project;
+              const updatedItems = project.items.filter((_, iIdx) => iIdx !== itemIndex);
+              if (updatedItems.length === 0) return null;
+              return { ...project, items: updatedItems };
+            })
+            .filter(project => project !== null);
+          if (updatedProjects.length === 0) return null;
+          return { ...person, projects: updatedProjects };
+        })
+        .filter(person => person !== null);
+    }
+
+    function BongoCat() {
+      const [leftPawActive, setLeftPawActive] = useState(true);
+      const [keysPressed, setKeysPressed] = useState(new Set());
+
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          // Prevent multiple toggles if key is held down
+          if (e.repeat) return;
+
+          // Add key pressed into set
+          setKeysPressed(prev => new Set(prev.add(e.key)));
+
+          // Switch paw being used
+          setLeftPawActive((prev) => !prev);
+        };
+        const handleKeyUp = (e) => {
+          // Remove key-up key from set
+          setKeysPressed(prev => new Set([...prev].filter(x => x !== e.key)));
+        };
+
+        // If user leaves tab, key checks get messed up!
+        const handleVisibilityChange = () => {
+          if (document.visibilityState !== "visible") {
+            console.log("Lost tab focus, unsetting all keys...");
+            setKeysPressed(new Set());
+          }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+          window.removeEventListener("keydown", handleKeyDown);
+          window.removeEventListener("keyup", handleKeyUp);
+          window.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+      }, []);
+
+      const leftPawDown = keysPressed.size > 0 && leftPawActive;
+      const rightPawDown = keysPressed.size > 0 && !leftPawActive;
+
+      /* SVG adapted from: https://codepen.io/carolineartz/pen/VwYwZaP */
+      return (
+        <div className="flex justify-end">
           <svg className="h-48 w-48 -my-16" id="bongo-cat" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 787.3 433.8">
             <defs>
               <symbol id="eye" data-name="eye" viewBox="0 0 19.2 18.7">
                 <circle cx="9.4" cy="9.1" r="8"></circle>
                 <path d="M16.3,5.1a1.3,1.3,0,0,1-1.4-.3,7.2,7.2,0,0,0-4.5-2.6A7.2,7.2,0,0,0,5.5,3.5,6.8,6.8,0,0,0,2.8,7.8a6.8,6.8,0,0,0,1,4.8,6.2,6.2,0,0,0,4,2.7,6.1,6.1,0,0,0,4.6-.7,6.7,6.7,0,0,0,2.9-3.7,6.4,6.4,0,0,0-.5-4.5c-.1-.2.8-1,1.5-1.3s2.2,0,2.3.5a9.4,9.4,0,0,1-.2,7.2,9.4,9.4,0,0,1-5.1,5.1,9,9,0,0,1-7,.2A9.6,9.6,0,0,1,1,13.5,9.2,9.2,0,0,1,.4,6.6,8.9,8.9,0,0,1,4.6,1.3,9,9,0,0,1,11.2.2,9.3,9.3,0,0,1,16.7,4C16.9,4.3,17,4.8,16.3,5.1Z"></path>
-                </symbol>
-                <symbol id="paw-pads" data-name="paw-pads" viewBox="0 0 31.4 33.9">
-                  <path d="M6.8,16a3.7,3.7,0,0,1,1.1,2.8,3.2,3.2,0,0,1-1.6,2.6L5,21.8H4.4a2.8,2.8,0,0,1-1.8.3A4.2,4.2,0,0,1,.2,19.1,7.7,7.7,0,0,1,0,17.6a2.8,2.8,0,0,1,.6-2,3.2,3.2,0,0,1,2.1-.8H4A5,5,0,0,1,6.8,16Zm7.3-4.8a1.8,1.8,0,0,0,.7-.5l.7-.4a3.5,3.5,0,0,0,1.1-1,3.2,3.2,0,0,0,.3-1.4,1.4,1.4,0,0,0-.2-.6,3.4,3.4,0,0,0-.3-2.4,3.2,3.2,0,0,0-2.1-1.5H13.1a4.7,4.7,0,0,0-1.6.4,2,2,0,0,0-.9.9l-.4.6v.4a6.1,6.1,0,0,0-.5,1.2,4.3,4.3,0,0,0,0,1.6,3.5,3.5,0,0,0,.5,2l.7.6a3.3,3.3,0,0,0,1.7.7A3,3,0,0,0,14.1,11.2ZM22.7,7l.6.2h.3A2.3,2.3,0,0,0,25,6.8l.4-.3.6-.3a7.5,7.5,0,0,0,1.5-.9,4.2,4.2,0,0,0,.8-1.2,1.9,1.9,0,0,0,.1-1.5A2.6,2.6,0,0,0,27.5,1,3.5,3.5,0,0,0,23.6.3a3.8,3.8,0,0,0-2,1.5,4.8,4.8,0,0,0-.7,2,3.6,3.6,0,0,0,.9,2.6ZM31,24.1a13.5,13.5,0,0,0-2.2-4.7,36.6,36.6,0,0,0-3.2-3.9,5.3,5.3,0,0,0-5-1.9,10.5,10.5,0,0,0-4.5,2.2A5.6,5.6,0,0,0,13.5,20a15.1,15.1,0,0,0,1.2,6.3c.8,2,1.7,4,2.6,5.9a1.6,1.6,0,0,0,1.5.8,1.7,1.7,0,0,0,1.9.9,17.1,17.1,0,0,0,8.7-4.8,8.2,8.2,0,0,0,1.7-2C31.6,26.3,31.3,25,31,24.1Z" fill="#ef97b0"></path>
+              </symbol>
+              <symbol id="paw-pads" data-name="paw-pads" viewBox="0 0 31.4 33.9">
+                <path d="M6.8,16a3.7,3.7,0,0,1,1.1,2.8,3.2,3.2,0,0,1-1.6,2.6L5,21.8H4.4a2.8,2.8,0,0,1-1.8.3A4.2,4.2,0,0,1,.2,19.1,7.7,7.7,0,0,1,0,17.6a2.8,2.8,0,0,1,.6-2,3.2,3.2,0,0,1,2.1-.8H4A5,5,0,0,1,6.8,16Zm7.3-4.8a1.8,1.8,0,0,0,.7-.5l.7-.4a3.5,3.5,0,0,0,1.1-1,3.2,3.2,0,0,0,.3-1.4,1.4,1.4,0,0,0-.2-.6,3.4,3.4,0,0,0-.3-2.4,3.2,3.2,0,0,0-2.1-1.5H13.1a4.7,4.7,0,0,0-1.6.4,2,2,0,0,0-.9.9l-.4.6v.4a6.1,6.1,0,0,0-.5,1.2,4.3,4.3,0,0,0,0,1.6,3.5,3.5,0,0,0,.5,2l.7.6a3.3,3.3,0,0,0,1.7.7A3,3,0,0,0,14.1,11.2ZM22.7,7l.6.2h.3A2.3,2.3,0,0,0,25,6.8l.4-.3.6-.3a7.5,7.5,0,0,0,1.5-.9,4.2,4.2,0,0,0,.8-1.2,1.9,1.9,0,0,0,.1-1.5A2.6,2.6,0,0,0,27.5,1,3.5,3.5,0,0,0,23.6.3a3.8,3.8,0,0,0-2,1.5,4.8,4.8,0,0,0-.7,2,3.6,3.6,0,0,0,.9,2.6ZM31,24.1a13.5,13.5,0,0,0-2.2-4.7,36.6,36.6,0,0,0-3.2-3.9,5.3,5.3,0,0,0-5-1.9,10.5,10.5,0,0,0-4.5,2.2A5.6,5.6,0,0,0,13.5,20a15.1,15.1,0,0,0,1.2,6.3c.8,2,1.7,4,2.6,5.9a1.6,1.6,0,0,0,1.5.8,1.7,1.7,0,0,0,1.9.9,17.1,17.1,0,0,0,8.7-4.8,8.2,8.2,0,0,0,1.7-2C31.6,26.3,31.3,25,31,24.1Z" fill="#ef97b0"></path>
               </symbol>
             </defs>
             <g id="head">
@@ -540,127 +555,127 @@
               </g>
             </g>
           </svg>
-          </div>
-        );
-      }
+        </div>
+      );
+    }
 
-      function Table({reportItems, setReportItems}) {
-        const [futurePlansMode, setFuturePlansMode] = useState(false);
-        const headingText = futurePlansMode ? "차주" : "금일";
+    function Table({ reportItems, setReportItems }) {
+      const [futurePlansMode, setFuturePlansMode] = useState(false);
+      const headingText = futurePlansMode ? "차주" : "금일";
 
-        const [sortName, setSortName] = useState(true);
-        const [sortProject, setSortProject] = useState(true);
-        const [showBongoCat, setShowBongoCat] = useState(false);
+      const [sortName, setSortName] = useState(true);
+      const [sortProject, setSortProject] = useState(true);
+      const [showBongoCat, setShowBongoCat] = useState(false);
 
-        const [name, setName] = useState(names[0]);
-        const [project, setProject] = useState(projectPreselect[0]);
-        const [description, setDescription] = useState('');
+      const [name, setName] = useState(names[0]);
+      const [project, setProject] = useState(projectPreselect[0]);
+      const [description, setDescription] = useState('');
 
-        // Load bongocat state and saved fields in add form on initial page load
-        useEffect(() => {
-          const bongoCatEnabled = localStorage.getItem(BONGOCAT_KEY);
-          if (bongoCatEnabled && bongoCatEnabled === "true") {
-            setShowBongoCat(true);
-          }
+      // Load bongocat state and saved fields in add form on initial page load
+      useEffect(() => {
+        const bongoCatEnabled = localStorage.getItem(BONGOCAT_KEY);
+        if (bongoCatEnabled && bongoCatEnabled === "true") {
+          setShowBongoCat(true);
+        }
 
-          const storedName = localStorage.getItem(NAME_KEY);
-          if (storedName) {
-            setName(storedName);
-          }
+        const storedName = localStorage.getItem(NAME_KEY);
+        if (storedName) {
+          setName(storedName);
+        }
 
-          const storedProject = localStorage.getItem(PROJECT_KEY);
-          if (storedProject) {
-            setProject(storedProject);
-          }
+        const storedProject = localStorage.getItem(PROJECT_KEY);
+        if (storedProject) {
+          setProject(storedProject);
+        }
 
-          const storedDesc = localStorage.getItem(DESC_KEY);
-          if (storedDesc) {
-            setDescription(storedDesc);
-          }
-        }, []);
+        const storedDesc = localStorage.getItem(DESC_KEY);
+        if (storedDesc) {
+          setDescription(storedDesc);
+        }
+      }, []);
 
-        // Save fields on change
-        useEffect(() => {
-          localStorage.setItem(NAME_KEY, name);
-        }, [name]);
+      // Save fields on change
+      useEffect(() => {
+        localStorage.setItem(NAME_KEY, name);
+      }, [name]);
 
-        useEffect(() => {
-          localStorage.setItem(PROJECT_KEY, project);
-        }, [project]);
+      useEffect(() => {
+        localStorage.setItem(PROJECT_KEY, project);
+      }, [project]);
 
-        useEffect(() => {
-          localStorage.setItem(DESC_KEY, description);
-        }, [description]);
+      useEffect(() => {
+        localStorage.setItem(DESC_KEY, description);
+      }, [description]);
 
-        useEffect(() => {
-          localStorage.setItem(BONGOCAT_KEY, showBongoCat);
-        }, [showBongoCat]);
+      useEffect(() => {
+        localStorage.setItem(BONGOCAT_KEY, showBongoCat);
+      }, [showBongoCat]);
 
-        var sortedItems = reportItems;
+      var sortedItems = reportItems;
 
-	if (sortProject) sortedItems = sortByProject(sortedItems);
-	if (sortName) sortedItems = sortBySeniority(sortedItems);
+      if (sortProject) sortedItems = sortByProject(sortedItems);
+      if (sortName) sortedItems = sortBySeniority(sortedItems);
 
-        const deleteItem = (person_idx, project_idx, job_idx) => {
-          if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
-            return; // cancel
-          }
+      const deleteItem = (person_idx, project_idx, job_idx) => {
+        if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
+          return; // cancel
+        }
 
-          const targetPerson = sortedItems[person_idx];
-          const targetProject = targetPerson["projects"][project_idx];
-          const targetDescription = targetProject["items"][job_idx];
+        const targetPerson = sortedItems[person_idx];
+        const targetProject = targetPerson["projects"][project_idx];
+        const targetDescription = targetProject["items"][job_idx];
 
-          setReportItems(removeItem(sortedItems, person_idx, project_idx, job_idx));
+        setReportItems(removeItem(sortedItems, person_idx, project_idx, job_idx));
 
-          setName(targetPerson["name"]);
-          setProject(targetProject["name"]);
-          setDescription(targetDescription);       
-        };
+        setName(targetPerson["name"]);
+        setProject(targetProject["name"]);
+        setDescription(targetDescription);
+      };
 
-        return (
-          <div>
-            <div id="report-table">
-              <div id="table-options" className="mb-4">
-                <LabeledCheckbox
-                  checked={futurePlansMode}
-                  onChange={e => setFuturePlansMode(e.target.checked)}
-                >
-                  차주 보고서 헤더
-                </LabeledCheckbox>
-                <LabeledCheckbox
-                  checked={sortName}
-                  onChange={e => setSortName(e.target.checked)}
-                >
-                  이름 정렬
-                </LabeledCheckbox>
+      return (
+        <div>
+          <div id="report-table">
+            <div id="table-options" className="mb-4">
+              <LabeledCheckbox
+                checked={futurePlansMode}
+                onChange={e => setFuturePlansMode(e.target.checked)}
+              >
+                차주 보고서 헤더
+              </LabeledCheckbox>
+              <LabeledCheckbox
+                checked={sortName}
+                onChange={e => setSortName(e.target.checked)}
+              >
+                이름 정렬
+              </LabeledCheckbox>
 
-                <LabeledCheckbox
-                  checked={sortProject}
-                  onChange={e => setSortProject(e.target.checked)}
-                >
-                  프로젝트 정렬
-                </LabeledCheckbox>
-              </div>
+              <LabeledCheckbox
+                checked={sortProject}
+                onChange={e => setSortProject(e.target.checked)}
+              >
+                프로젝트 정렬
+              </LabeledCheckbox>
+            </div>
 
-              <table border="1" className="w-full border-collapse border border-black">
-                <thead>
+            <table border="1" className="w-full border-collapse border border-black">
+              <thead>
+                <tr>
+                  <th className="text-center border border-black p-2">이름</th>
+                  <th className="text-center border border-black p-2">프로젝트</th>
+                  <th className="text-center border border-black p-2">{headingText} 업무 내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedItems.length === 0 ? (
                   <tr>
-                    <th className="text-center border border-black p-2">이름</th>
-                    <th className="text-center border border-black p-2">프로젝트</th>
-                    <th className="text-center border border-black p-2">{headingText} 업무 내용</th>
+                    <td colSpan="3" className="text-center border border-black p-2">
+                      아이템이 없습니다. 아래에서 추가하세요!
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {sortedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" className="text-center border border-black p-2">
-                        아이템이 없습니다. 아래에서 추가하세요!
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedItems.map((person, person_idx) =>
-                      person.projects.map((project, project_idx) => (
-                        <tr key={person.name + project.name}>
+                ) : (
+                  sortedItems.map((person, person_idx) =>
+                    person.projects.map((project, project_idx) => (
+                      <tr key={person.name + project.name}>
                         {project_idx === 0 && (
                           <td className="border border-black p-2" rowSpan={person.projects.length}>{person.name}</td>
                         )}
@@ -682,34 +697,35 @@
                     ))
                   )
                 )}
-                </tbody>
-              </table>
-            </div>
-            <div>
-              <span className="block mb-4">(팁: 아이템을 누르면 삭제하실 수 있고, 삭제된 아이템은 바로 편집할 수 있도록 필드에 다시 입력됩니다.)</span>
-
-              {showBongoCat && <BongoCat />}
-
-              <ReportForm
-                className="mb-4"
-                reportItems={reportItems}
-                setReportItems={setReportItems}
-                name={name}
-                setName={setName}
-                project={project}
-                setProject={setProject}
-                description={description}
-                setDescription={setDescription}
-                setShowBongoCat={setShowBongoCat}
-              />
-            </div>
+              </tbody>
+            </table>
           </div>
-        );
-      }
+          <div>
+            <span className="block mb-4">(팁: 아이템을 누르면 삭제하실 수 있고, 삭제된 아이템은 바로 편집할 수 있도록 필드에 다시 입력됩니다.)</span>
 
-      const rootElement = document.getElementById('root');
-      const root = ReactDOMClient.createRoot(rootElement);
-      root.render(<App />);
-    </script>
-  </body>
+            {showBongoCat && <BongoCat />}
+
+            <ReportForm
+              className="mb-4"
+              reportItems={reportItems}
+              setReportItems={setReportItems}
+              name={name}
+              setName={setName}
+              project={project}
+              setProject={setProject}
+              description={description}
+              setDescription={setDescription}
+              setShowBongoCat={setShowBongoCat}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    const rootElement = document.getElementById('root');
+    const root = ReactDOMClient.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+
 </html>
