@@ -679,7 +679,8 @@
                         {project_idx === 0 && (
                           <td className="border border-black p-2" rowSpan={person.projects.length}>{person.name}</td>
                         )}
-                        <td className="border border-black p-2">{project.name}</td>
+                        <td className="border border-black p-2 cursor-pointer hover:text-gray-700"
+                          onClick={e => { setProject(project.name) }}>{project.name}</td>
                         <td className="border border-black p-2">
                           <ul>
                             {project.items.map((item, job_idx) => (
