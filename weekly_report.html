@@ -616,6 +616,10 @@
       if (sortProject) sortedItems = sortByProject(sortedItems);
       if (sortName) sortedItems = sortBySeniority(sortedItems);
 
+      const copyItem = (item) => {
+        navigator.clipboard.writeText(item);
+      };
+
       const deleteItem = (person_idx, project_idx, job_idx) => {
         if (typeof window !== 'undefined' && !confirm("정말로 삭제하시겠어요? 선택하신 아이템은 다시 필드로 이동시킵니다.")) {
           return; // cancel
@@ -677,7 +681,9 @@
                     person.projects.map((project, project_idx) => (
                       <tr key={person.name + project.name}>
                         {project_idx === 0 && (
-                          <td className="border border-black p-2" rowSpan={person.projects.length}>{person.name}</td>
+                          <td className="border border-black p-2" rowSpan={person.projects.length}
+                            onClick={e => { setName(person.name) }}
+                          >{person.name}</td>
                         )}
                         <td className="border border-black p-2 cursor-pointer hover:text-gray-700"
                           onClick={e => { setProject(project.name) }}>{project.name}</td>
@@ -687,6 +693,7 @@
                               <li
                                 className="list-disc ms-5 cursor-pointer hover:text-gray-700"
                                 key={job_idx}
+                                onContextMenu={e => { copyItem(item) }}
                                 onClick={e => { deleteItem(person_idx, project_idx, job_idx) }}
                               >
                                 {item}
