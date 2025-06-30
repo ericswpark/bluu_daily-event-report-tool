@@ -318,12 +318,6 @@
     }
 
     function sortBySeniority(reportItems, shouldSortByTheSoonToDepart) {
-      if (shouldSortByTheSoonToDepart) {
-        const temp = names[1];
-        names[1] = names[0];
-        names[0] = temp;
-      }
-
       // Create a name -> index map for fast lookup
       const orderMap = names.reduce((acc, name, index) => {
         acc[name] = index;
@@ -332,6 +326,11 @@
 
       // Return a new sorted array
       return [...reportItems].sort((a, b) => {
+        if (shouldSortByTheSoonToDepart) {
+          if (a.name === names[1] && b.name !== names[1]) return -1;
+          if (b.name === names[1] && a.name !== names[1]) return 1;
+        }
+
         const indexA = orderMap[a.name] ?? Infinity;
         const indexB = orderMap[b.name] ?? Infinity;
         return indexA - indexB;
