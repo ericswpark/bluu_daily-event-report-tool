@@ -28,7 +28,7 @@
     const PROJECT_KEY = 'add-project-field';
     const DESC_KEY = 'add-desc-field';
 
-    const names = ["박선우"];
+    const names = ["박선우", "Soon to Depart Person"];
     const projectPreselect = ["Demo Project", "Other"];
 
     function App() {
@@ -260,6 +260,7 @@
         <div className={className}>
           <TextArea
             value={jsonText}
+            placeholder="팀원의 업무 내용을 한 분씩 여기에 붙여넣고, '병합' 버튼을 눌러주세요!"
             onChange={e => setJsonText(e.target.value)}
             onKeyDown={handleKeyDown}
           />
@@ -316,7 +317,13 @@
       });
     }
 
-    function sortBySeniority(reportItems) {
+    function sortBySeniority(reportItems, shouldSortByTheSoonToDepart) {
+      if (shouldSortByTheSoonToDepart) {
+        const temp = names[1];
+        names[1] = names[0];
+        names[0] = temp;
+      }
+
       // Create a name -> index map for fast lookup
       const orderMap = names.reduce((acc, name, index) => {
         acc[name] = index;
@@ -485,6 +492,13 @@
           }
         };
 
+        // Every 5 seconds, log pressed keys in the console if there are any
+        const keyCheckInterval = setInterval(() => {
+          if (keysPressed.size > 0) {
+            console.log("Currently pressed keys: ", keysPressed);
+          }
+        }, 5000);
+
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
         window.addEventListener("visibilitychange", handleVisibilityChange);
@@ -493,6 +507,7 @@
           window.removeEventListener("keydown", handleKeyDown);
           window.removeEventListener("keyup", handleKeyUp);
           window.removeEventListener("visibilitychange", handleVisibilityChange);
+          clearInterval(keyCheckInterval);
         };
       }, []);
 
@@ -614,7 +629,7 @@
       var sortedItems = reportItems;
 
       if (sortProject) sortedItems = sortByProject(sortedItems);
-      if (sortName) sortedItems = sortBySeniority(sortedItems);
+      if (sortName) sortedItems = sortBySeniority(sortedItems, name === names[1]);
 
       const copyItem = (item) => {
         navigator.clipboard.writeText(item);
@@ -681,7 +696,8 @@
                     person.projects.map((project, project_idx) => (
                       <tr key={person.name + project.name}>
                         {project_idx === 0 && (
-                          <td className="border border-black p-2" rowSpan={person.projects.length}
+                          <td className="border border-black p-2 cursor-pointer hover:text-gray-700"
+                            rowSpan={person.projects.length}
                             onClick={e => { setName(person.name) }}
                           >{person.name}</td>
                         )}
