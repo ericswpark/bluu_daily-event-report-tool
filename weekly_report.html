@@ -168,10 +168,13 @@
 
       return (
         <div className={className}>
-          <TextArea
-            value={jsonText}
-            onChange={handleJsonChange}
-          />
+          <details>
+            <summary className="mb-4 ms-8">펼치기</summary>
+            <TextArea
+              value={jsonText}
+              onChange={handleJsonChange}
+            />
+          </details>
           <div className="flex flex-wrap justify-between gap-2">
             <Button onClick={clipboardCopy}>클립보드에 복사</Button>
             <Button type="danger" onClick={resetAll} disabled={isEmpty} title={resetAllHelpText}>초기화</Button>
@@ -190,11 +193,17 @@
       const startImport = (e) => {
         if (jsonTextEmpty) return;
 
+        importWith(jsonText);
+        // Clear JSON after adding
+        setJsonText("");
+      };
+
+      const importWith = (text) => {
         // Store previous report items in merge history
         const previousItems = structuredClone(reportItems);
         setMergeHistory([...mergeHistory, previousItems]);
         try {
-          const parsed = JSON.parse(jsonText);
+          const parsed = JSON.parse(text);
 
           parsed.forEach(user => {
             const { name, projects } = user;
@@ -205,13 +214,10 @@
               });
             });
           });
-
-          // Clear JSON after adding
-          setJsonText("");
         } catch (err) {
           alert('입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.');
         }
-      };
+      }
 
       const undoHistory = () => {
         // Sanity check
@@ -232,6 +238,7 @@
           if (navigator.clipboard && navigator.clipboard.readText) {
             const text = await navigator.clipboard.readText();
             setJsonText(text);
+            return text;
           } else {
             console.error("이 브라우저는 이 기능을 지원하지 않습니다.");
           }
@@ -240,6 +247,13 @@
           console.error("Failed to read clipboard contents:", err);
         }
       };
+
+      const pasteAndImport = async () => {
+        const text = await clipboardPaste();
+        importWith(text);
+        // Clear JSON after adding
+        setJsonText("");
+      }
 
       const handleKeyDown = (event) => {
         if (event.ctrlKey && event.key === "Enter") {
@@ -258,15 +272,19 @@
 
       return (
         <div className={className}>
-          <TextArea
-            value={jsonText}
-            placeholder="팀원의 업무 내용을 한 분씩 여기에 붙여넣고, '병합' 버튼을 눌러주세요!"
-            onChange={e => setJsonText(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+          <details>
+            <summary className="ms-8 mb-4">펼치기</summary>
+            <TextArea
+              value={jsonText}
+              placeholder="팀원의 업무 내용을 한 분씩 여기에 붙여넣고, '병합' 버튼을 눌러주세요!"
+              onChange={e => setJsonText(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </details>
           {/* Controls */}
           <div className="flex flex-wrap gap-2 justify-between">
             <Button onClick={clipboardPaste} className={"me-2"}>클립보드에서 붙여넣기</Button>
+            <Button onClick={pasteAndImport} className={"me-2"}>붙여넣기 + 병합</Button>
             <div className="flex flex-wrap gap-2">
               <Button type="danger" onClick={undoHistory} disabled={historyEmpty} title={undoHistoryHelpText}>실행 취소</Button>
               <Button onClick={startImport} disabled={jsonTextEmpty} title={startImportHelpText}>병합</Button>
