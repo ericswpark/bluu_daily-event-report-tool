@@ -558,7 +558,7 @@
         const handleEnter = useCallback((e) => {
           if (e.key !== "Enter") return;
           handleAdd();
-        }, []);
+        }, [name, project, description]);
 
         return (
           <div className={"flex flex-col flex-wrap gap-2 " + className}>
