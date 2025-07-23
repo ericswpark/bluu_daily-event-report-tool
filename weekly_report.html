@@ -37,6 +37,8 @@
     function App() {
       const [reportItems, setReportItems] = useState([]);
 
+      const [name, setName] = useState(names[0]);
+
       // Load saved report items on initial page load
       useEffect(() => {
         const storedItems = localStorage.getItem(REPORT_ITEMS_KEY);
@@ -59,12 +61,13 @@
       return (
         <div className="max-w-4xl mx-auto px-8">
           <h1 className="text-3xl my-4">일일리포트 작성</h1>
-          <Table reportItems={reportItems} setReportItems={setReportItems} />
+          <Table reportItems={reportItems} setReportItems={setReportItems} name={name} setName={setName} />
 
           <h2 className="text-2xl mb-4">JSON Webex로 보내기</h2>
           <RawJSONView
             reportItems={reportItems}
             setReportItems={setReportItems}
+            name={name}
             className="mb-4"
           />
 
@@ -159,6 +162,7 @@
     const RawJSONView = memo(function RawJSONView({
       reportItems,
       setReportItems,
+      name,
       className = "",
     }) {
       const isEmpty = reportItems.length === 0;
@@ -188,6 +192,20 @@
         alert("복사되었습니다. Webex로 전송해주세요.");
       }, [jsonText]);
 
+      const downloadJson = useCallback(() => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonText);
+
+        const date = new Date().toISOString().substring(0, 10);
+        const exportFileName = `${date} - ${name}.json`;
+
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", exportFileName);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+      }, [jsonText]);
+
       const resetAll = useCallback(() => {
         if (
           typeof window !== "undefined" &&
@@ -211,6 +229,7 @@
           </details>
           <div className="flex flex-wrap justify-between gap-2">
             <Button onClick={clipboardCopy}>클립보드에 복사</Button>
+            <Button onClick={downloadJson}>파일로 다운로드</Button>
             <Button
               type="danger"
               onClick={resetAll}
@@ -231,6 +250,7 @@
     }) {
       const [jsonText, setJsonText] = useState("");
       const [mergeHistory, setMergeHistory] = useState([]);
+      const [dragActive, setDragActive] = useState(false);
 
       const historyEmpty = useMemo(
         () => mergeHistory.length === 0,
@@ -328,6 +348,68 @@
         }
       }, []);
 
+      // Handle drag and drop
+      useEffect(() => {
+        const handleDragEnter = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragActive(true);
+        };
+
+        const handleDragLeave = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Only hide if leaving the window, not child elements
+          if (e.relatedTarget === null) {
+            setDragActive(false);
+          }
+        };
+
+        const handleDragOver = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        const handleDrop = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setDragActive(false);
+
+          if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+            const files = Array.from(event.dataTransfer.files);
+
+            files.forEach((file) => {
+              const reader = new FileReader();
+
+              reader.addEventListener("load", () => {
+                importWith(reader.result);
+              }, false);
+
+              if (file.name.endsWith('.json')) {
+                reader.readAsText(file);
+              } else {
+                alert("오류: 지원하지 않는 파일 형식입니다.");
+              }
+            });
+
+            event.dataTransfer.clearData();
+          }
+        };
+
+        window.addEventListener("dragenter", handleDragEnter);
+        window.addEventListener("dragleave", handleDragLeave);
+        window.addEventListener("dragover", handleDragOver);
+        window.addEventListener("drop", handleDrop);
+
+        return () => {
+          window.removeEventListener("dragenter", handleDragEnter);
+          window.removeEventListener("dragleave", handleDragLeave);
+          window.removeEventListener("dragover", handleDragOver);
+          window.removeEventListener("drop", handleDrop);
+        }
+      }, []);
+
+
       const undoHistoryHelpText = historyEmpty
         ? "현재 병합 내역이 비어있어 실행취소하실 수 없습니다."
         : "마지막 병합 작업을 실행취소하고 이전 단계로 되돌립니다.";
@@ -336,43 +418,53 @@
         : "입력된 팀원의 JSON을 현재 JSON에 병합처리합니다.";
 
       return (
-        <div className={className}>
-          <details>
-            <summary className="ms-8 mb-4">펼치기</summary>
-            <TextArea
-              value={jsonText}
-              placeholder="팀원의 업무 내용을 한 분씩 여기에 붙여넣고, '병합' 버튼을 눌러주세요!"
-              onChange={useCallback((e) => setJsonText(e.target.value), [])}
-              onKeyDown={handleKeyDown}
-            />
-          </details>
-          {/* Controls */}
-          <div className="flex flex-wrap gap-2 justify-between">
-            <Button onClick={clipboardPaste} className={"me-2"}>
-              클립보드에서 붙여넣기
-            </Button>
-            <Button onClick={pasteAndImport} className={"me-2"}>
-              붙여넣기 + 병합
-            </Button>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="danger"
-                onClick={undoHistory}
-                disabled={historyEmpty}
-                title={undoHistoryHelpText}
-              >
-                실행 취소
+        <>
+          <div className={className}>
+            <details>
+              <summary className="ms-8 mb-4">펼치기</summary>
+              <TextArea
+                value={jsonText}
+                placeholder="팀원의 업무 내용을 한 분씩 여기에 붙여넣고, '병합' 버튼을 눌러주세요!"
+                onChange={useCallback((e) => setJsonText(e.target.value), [])}
+                onKeyDown={handleKeyDown}
+              />
+            </details>
+            {/* Controls */}
+            <div className="flex flex-wrap gap-2 justify-between">
+              <Button onClick={clipboardPaste} className={"me-2"}>
+                클립보드에서 붙여넣기
               </Button>
-              <Button
-                onClick={startImport}
-                disabled={jsonTextEmpty}
-                title={startImportHelpText}
-              >
-                병합
+              <Button onClick={pasteAndImport} className={"me-2"}>
+                붙여넣기 + 병합
               </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="danger"
+                  onClick={undoHistory}
+                  disabled={historyEmpty}
+                  title={undoHistoryHelpText}
+                >
+                  실행 취소
+                </Button>
+                <Button
+                  onClick={startImport}
+                  disabled={jsonTextEmpty}
+                  title={startImportHelpText}
+                >
+                  병합
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+          {/* Drag and drop overlay */}
+          {dragActive && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 pointer-events-none">
+              <div className="bg-black bg-opacity-60 text-white text-2xl font-semibold px-6 py-4 rounded-2xl shadow-lg">
+                파일을 드래그해서 리포트에 병합
+              </div>
+            </div>
+          )}
+        </>
       );
     });
 
@@ -785,7 +877,7 @@
       );
     });
 
-    const Table = memo(function Table({ reportItems, setReportItems }) {
+    const Table = memo(function Table({ reportItems, setReportItems, name, setName }) {
       const [futurePlansMode, setFuturePlansMode] = useState(false);
       const headingText = futurePlansMode ? "차주" : "금일";
 
@@ -793,7 +885,6 @@
       const [sortProject, setSortProject] = useState(true);
       const [showBongoCat, setShowBongoCat] = useState(false);
 
-      const [name, setName] = useState(names[0]);
       const [project, setProject] = useState(projectPreselect[0]);
       const [description, setDescription] = useState("");
 
