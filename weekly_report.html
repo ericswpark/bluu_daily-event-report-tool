@@ -269,11 +269,15 @@
         [jsonText]
       );
 
+      const pushToMergeHistory = useCallback(() => {
+        // Store previous report items in merge history
+        const previousItems = structuredClone(reportItems);
+        setMergeHistory((prevHistory) => [...prevHistory, previousItems]);
+      }, [reportItems, mergeHistory]);
+
       const importWith = useCallback(
         (text) => {
-          // Store previous report items in merge history
-          const previousItems = structuredClone(reportItems);
-          setMergeHistory((prevHistory) => [...prevHistory, previousItems]);
+          pushToMergeHistory();
           try {
             const parsed = JSON.parse(text);
 
@@ -296,7 +300,7 @@
             alert("입력한 JSON이 올바르지 않습니다. 다시 확인해 주세요.");
           }
         },
-        [reportItems]
+        [reportItems, pushToMergeHistory]
       );
 
       const undoHistory = useCallback(() => {
@@ -311,7 +315,8 @@
         }
 
         const newHistory = [...mergeHistory];
-        setReportItems(newHistory.pop());
+        const newReportItems = newHistory.pop();
+        setReportItems(newReportItems);
         setMergeHistory(newHistory);
       }, [mergeHistory]);
 
@@ -407,7 +412,7 @@
           window.removeEventListener("dragover", handleDragOver);
           window.removeEventListener("drop", handleDrop);
         }
-      }, []);
+      }, [importWith]);
 
 
       const undoHistoryHelpText = historyEmpty
